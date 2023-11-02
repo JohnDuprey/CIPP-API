@@ -1,0 +1,19 @@
+{
+  "scriptFile": "../Modules/CippEntrypoints/CippEntrypoints.psm1",
+  "entryPoint": "Receive-CippApiRequest",
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "Request",
+      "methods": ["get", "post"],
+      "route": "v1.0/{endpoint}/{p1?}/{p2?}/{p3?}/{p4?}"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "Response"
+    }
+  ]
+}

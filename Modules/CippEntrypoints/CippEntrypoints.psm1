@@ -28,5 +28,15 @@ function Receive-CippQueueTrigger {
     & $FunctionName @QueueTrigger
 }
 
-Export-ModuleMember -Function @('Receive-CippHttpTrigger', 'Receive-CippQueueTrigger')
+function Receive-CippApiRequest {
+    Param($Request, $TriggerMetadata)
+
+    $HttpTrigger = @{
+        Request         = $Request
+        TriggerMetadata = $TriggerMetadata
+    }
+    Invoke-CIPPApiRequest @HttpTrigger
+}
+
+Export-ModuleMember -Function @('Receive-CippHttpTrigger', 'Receive-CippQueueTrigger', 'Receive-CippApiRequest')
 
