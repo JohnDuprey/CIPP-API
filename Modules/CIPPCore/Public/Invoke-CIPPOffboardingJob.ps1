@@ -12,7 +12,7 @@ function Invoke-CIPPOffboardingJob {
     if ($Options -is [string]) {
         $Options = $Options | ConvertFrom-Json
     }
-    $userid = (New-GraphGetRequest -uri "https://graph.microsoft.com/beta/users/$($username)" -tenantid $Tenantfilter).id
+    $userid = (New-GraphGetRequest -uri "https://graph.microsoft.com/beta/users/$($username)?`$select=id" -tenantid $Tenantfilter).id
     Write-Host "Running offboarding job for $username with options: $($Options | ConvertTo-Json -Depth 10)"
     $Return = switch ($Options) {
         { $_.'ConvertToShared' -eq 'true' } {
@@ -81,19 +81,22 @@ function Invoke-CIPPOffboardingJob {
                 Remove-CIPPMailboxPermissions -PermissionsLevel @('FullAccess', 'SendAs', 'SendOnBehalf') -userid 'AllUsers' -AccessUser $UserName -TenantFilter $TenantFilter -APIName $APINAME -ExecutingUser $ExecutingUser
 
             } else {
+                $Queue = New-CippQueueEntry -Name "Offboarding - Mailbox Permissions: $Username" -TotalTasks 1
                 $InputObject = [PSCustomObject]@{
                     Batch            = @(
                         [PSCustomObject]@{
-                            'FunctionName'  = 'OffboardingMailboxPermissions'
+                            'FunctionName'  = 'ExecOffboardingMailboxPermissions'
                             'TenantFilter'  = $TenantFilter
                             'User'          = $Username
-                            'executingUser' = $ExecutingUser
+                            'ExecutingUser' = $ExecutingUser
+                            'APINAME'       = $APINAME
+                            'QueueId'       = $Queue.RowKey
                         }
                     )
                     OrchestratorName = "OffboardingMailboxPermissions_$Username"
                     SkipLog          = $true
                 }
-                Start-NewOrchestration -FunctionName CIPPOrchestrator -InputObject ($InputObject | ConvertTo-Json -Depth 10)
+                $null = Start-NewOrchestration -FunctionName CIPPOrchestrator -InputObject ($InputObject | ConvertTo-Json -Depth 10)
                 "Removal of permissions queued. This task will run in the background and send it's results to the logbook."
             }
         }
