@@ -1,0 +1,60 @@
+function Test-CIPPAccessUserRole {
+    <#
+    .SYNOPSIS
+    Get the access role for the current user
+
+    .DESCRIPTION
+    Get the access role for the current user
+
+    .PARAMETER TenantID
+    The tenant ID to check the access role for
+
+    .EXAMPLE
+    Get-CippAccessRole -UserId $UserId
+
+    .FUNCTIONALITY
+    Internal
+    #>
+    [CmdletBinding()]
+    Param(
+        $User
+    )
+    $Roles = @()
+    $Table = Get-CippTable -TableName cacheAccessUserRoles
+    $Filter = "PartitionKey eq 'AccessRole' and RowKey eq '$($User.userDetails)' and Timestamp ge datetime'$((Get-Date).AddMinutes(-30).ToString('yyyy-MM-ddTHH:mm:ss'))'"
+    $UserRole = Get-CIPPAzDataTableEntity @Table -Filter $Filter
+    if ($UserRole) {
+        $Roles = $UserRole.Role | ConvertFrom-Json
+    } else {
+        try {
+            $uri = "https://graph.microsoft.com/beta/users/$($User.userDetails)/transitiveMemberOf"
+            $Memberships = New-GraphGetRequest -uri $uri -NoAuthCheck $true | Where-Object { $_.'@odata.type' -eq '#microsoft.graph.group' }
+        } catch {
+            Write-Error $_.Exception.Message
+            throw 'User not found'
+        }
+
+        $Table = Get-CippTable -TableName AccessRoleGroups
+        $AccessGroups = Get-CIPPAzDataTableEntity @Table
+
+        $Roles = foreach ($AccessGroup in $AccessGroups) {
+            if ($Memberships.id -contains $AccessGroup.GroupId) {
+                $AccessGroup.RowKey
+            }
+        }
+
+        $Roles = @($Roles) + @($User.userRoles)
+
+        if (($Roles | Measure-Object).Count -gt 0) {
+            $UserRole = [PSCustomObject]@{
+                PartitionKey = 'AccessUser'
+                RowKey       = [string]$User.userDetails
+                Role         = [string](ConvertTo-Json -Compress -InputObject $Roles)
+            }
+            Add-CIPPAzDataTableEntity @Table -Entity $UserRole -Force
+        }
+    }
+    $User.userRoles = $Roles
+
+    return $User
+}

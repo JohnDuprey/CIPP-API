@@ -7,7 +7,10 @@ function Test-CIPPAccess {
 
     # Get function help
     $FunctionName = 'Invoke-{0}' -f $Request.Params.CIPPEndpoint
-    $Help = Get-Help $FunctionName
+
+    try {
+        $Help = Get-Help $FunctionName -ErrorAction Stop
+    } catch {}
 
     # Check help for role
     $APIRole = $Help.Role
@@ -37,8 +40,30 @@ function Test-CIPPAccess {
         $DefaultRoles = @('admin', 'editor', 'readonly', 'anonymous', 'authenticated')
         $User = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Request.Headers.'x-ms-client-principal')) | ConvertFrom-Json
 
+        # Check for roles granted via group membership
+        if (($User.userRoles | Measure-Object).Count -eq 2 -and $User.userRoles -contains 'authenticated' -and $User.userRoles -contains 'anonymous') {
+            $User = Test-CIPPAccessUserRole -User $User
+        }
+
+        # Return user permissions
+        if ($Request.Params.CIPPEndpoint -eq 'me') {
+            Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+                    StatusCode = [HttpStatusCode]::OK
+                    Body       = (@{ 'clientPrincipal' = $User } | ConvertTo-Json -Depth 5)
+                })
+            return
+        }
+
+        # Pattern match on API endpoint prefix for role mapping
+        if ($Request.Params.CIPPEndpoint -match '^(?:Add|Edit|Remove)') {
+            $AllowedRoles = @('superadmin', 'admin', 'editor')
+        }
+        if ($Request.Params.CIPPEndpoint -match '^(?:List|Get)') {
+            $AllowedRoles = @('superadmin', 'admin', 'editor', 'readonly')
+        }
+
         if (!$TenantList.IsPresent -and $APIRole -match 'SuperAdmin' -and $User.userRoles -notcontains 'superadmin') {
-            throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required permission'
+            throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required role'
         }
 
         if ($User.userRoles -contains 'admin' -or $User.userRoles -contains 'superadmin') {
@@ -51,6 +76,17 @@ function Test-CIPPAccess {
         $CustomRoles = $User.userRoles | ForEach-Object {
             if ($DefaultRoles -notcontains $_) {
                 $_
+            }
+        }
+
+        if (($CustomRoles | Measure-Object).Count -eq 0) {
+            $AllowedRoles = $AllowedRoles | ForEach-Object {
+                if ($User.userRoles -contains $_) {
+                    $_
+                }
+            }
+            if (($AllowedRoles | Measure-Object).Count -eq 0) {
+                throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required role'
             }
         }
     }

@@ -35,9 +35,13 @@ function Receive-CippHttpTrigger {
         TriggerMetadata = $TriggerMetadata
     }
 
-    if (Get-Command -Name $FunctionName -ErrorAction SilentlyContinue) {
+    if ((Get-Command -Name $FunctionName -ErrorAction SilentlyContinue) -or $FunctionName -eq 'Invoke-Me') {
         try {
             $Access = Test-CIPPAccess -Request $Request
+            if ($FunctionName -eq 'Invoke-Me') {
+                return
+            }
+
             Write-Information "Access: $Access"
             if ($Access) {
                 & $FunctionName @HttpTrigger
@@ -55,6 +59,7 @@ function Receive-CippHttpTrigger {
                 Body       = 'Endpoint not found'
             })
     }
+    return
 }
 
 function Receive-CippOrchestrationTrigger {
