@@ -96,7 +96,7 @@ Function Invoke-ExecAccessChecks {
             if (!$Request.Query.SkipCache -eq 'true') {
                 try {
                     $Cache = Get-CIPPAzDataTableEntity @Table -Filter "RowKey eq 'GDAPRelationships'"
-                    $Results = $Cache.Data | ConvertFrom-Json
+                    $Results = $Cache.Data | ConvertFrom-Json -ErrorAction Stop
                 } catch {
                     $Results = $null
                 }

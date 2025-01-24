@@ -143,6 +143,7 @@ function Add-CIPPAzDataTableEntity {
 
                 } catch {
                     $ErrorMessage = Get-NormalizedError -Message $_.Exception.Message
+                    Write-Information ($SingleEnt | ConvertTo-Json)
                     throw "Error processing entity: $ErrorMessage Linenumber: $($_.InvocationInfo.ScriptLineNumber)"
                 }
             } else {
