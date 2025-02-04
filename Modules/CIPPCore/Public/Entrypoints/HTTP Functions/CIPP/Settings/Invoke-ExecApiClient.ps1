@@ -18,7 +18,7 @@ function Invoke-ExecApiClient {
                 $Apps = @()
             } else {
                 $Apps = foreach ($Client in $Apps) {
-                    $Client = $Client | Select-Object -Property @{Name = 'ClientID'; Expression = { $_.RowKey } }, AppName, Role, IPRange, Enabled
+                    $Client = $Client | Select-Object -Property @{Name = 'ClientId'; Expression = { $_.RowKey } }, AppName, Role, IPRange, Enabled
 
                     if (!$Client.Role) {
                         $Client.Role = 'No Restrictions'
@@ -124,6 +124,31 @@ function Invoke-ExecApiClient {
             } catch {
                 $Body = @{ Results = 'Failed to save allowed API clients to Azure, ensure your function app has the appropriate rights to make changes to the Authentication settings.' }
             }
+        }
+        'ResetSecret' {
+            $Client = Get-CIPPAzDataTableEntity @Table -Filter "RowKey eq '$($Request.Body.ClientId)'"
+            if (!$Client) {
+                $Results = @{
+                    text     = 'API client not found'
+                    severity = 'error'
+                }
+            } else {
+                $ApiConfig = New-CIPPAPIConfig -ResetSecret -AppId $Request.Body.ClientId
+
+                if ($ApiConfig.ApplicationSecret) {
+                    $Results = @{
+                        text      = "API secret reset for $($Client.AppName)"
+                        copyField = $ApiConfig.ApplicationSecret
+                        severity  = 'success'
+                    }
+                } else {
+                    $Results = @{
+                        text     = "Failed to reset secret for $($Client.AppName)"
+                        severity = 'error'
+                    }
+                }
+            }
+            $Body = @($Results)
         }
         'Delete' {
             try {
