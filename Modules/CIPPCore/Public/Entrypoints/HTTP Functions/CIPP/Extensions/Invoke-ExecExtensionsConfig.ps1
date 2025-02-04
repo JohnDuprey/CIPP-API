@@ -23,16 +23,7 @@ Function Invoke-ExecExtensionsConfig {
             )
             $SetNinjaHostname = $Body.NinjaOne.Instance -replace '/ws', '' -replace 'https://', ''
             if ($AllowedNinjaHostnames -notcontains $SetNinjaHostname) {
-                throw "NinjaOne URL is not allowed. Allowed hostnames are: $($AllowedNinjaHostnames -join ', ')"
-            }
-
-            try {
-                [version]$Version = (Invoke-WebRequest -Method GET -Uri "$SetNinjaHostname/app-version.txt" -ea stop).content
-            } catch {
-                throw "Failed to connect to NinjaOne check your Instance is set correctly eg 'app.ninjarmm.com'"
-            }
-            if ($Version -lt [version]'5.6.0.0') {
-                throw 'NinjaOne 5.6.0.0 is required.'
+                "Error: NinjaOne URL is not allowed. Allowed hostnames are: $($AllowedNinjaHostnames -join ', ')"
             }
         }
 
