@@ -19,15 +19,6 @@ function Test-IpInRange {
         [string]$Range
     )
 
-    $IP = [System.Net.IPAddress]::Parse($IPAddress)
-    $rangeParts = $Range -split '/'
-    $networkAddr = [System.Net.IPAddress]::Parse($rangeParts[0])
-    $prefix = [int]$rangeParts[1]
-
-    if ($networkAddr.AddressFamily -ne $IP.AddressFamily) {
-        return $false
-    }
-
     function ConvertIpToBigInteger {
         param([System.Net.IPAddress]$ip)
         return [System.Numerics.BigInteger]::Parse(
@@ -36,14 +27,27 @@ function Test-IpInRange {
         )
     }
 
-    $ipBig = ConvertIpToBigInteger $IP
-    $netBig = ConvertIpToBigInteger $networkAddr
-    $maxBits = if ($networkAddr.AddressFamily -eq 'InterNetworkV6') { 128 } else { 32 }
-    $shift = $maxBits - $prefix
-    $mask = [System.Numerics.BigInteger]::Pow(2, $shift) - [System.Numerics.BigInteger]::One
-    $invertedMask = [System.Numerics.BigInteger]::MinusOne -bxor $mask
-    $ipMasked = $ipBig -band $invertedMask
-    $netMasked = $netBig -band $invertedMask
+    try {
+        $IP = [System.Net.IPAddress]::Parse($IPAddress)
+        $rangeParts = $Range -split '/'
+        $networkAddr = [System.Net.IPAddress]::Parse($rangeParts[0])
+        $prefix = [int]$rangeParts[1]
 
-    return $ipMasked -eq $netMasked
+        if ($networkAddr.AddressFamily -ne $IP.AddressFamily) {
+            return $false
+        }
+
+        $ipBig = ConvertIpToBigInteger $IP
+        $netBig = ConvertIpToBigInteger $networkAddr
+        $maxBits = if ($networkAddr.AddressFamily -eq 'InterNetworkV6') { 128 } else { 32 }
+        $shift = $maxBits - $prefix
+        $mask = [System.Numerics.BigInteger]::Pow(2, $shift) - [System.Numerics.BigInteger]::One
+        $invertedMask = [System.Numerics.BigInteger]::MinusOne -bxor $mask
+        $ipMasked = $ipBig -band $invertedMask
+        $netMasked = $netBig -band $invertedMask
+
+        return $ipMasked -eq $netMasked
+    } catch {
+        return $false
+    }
 }
