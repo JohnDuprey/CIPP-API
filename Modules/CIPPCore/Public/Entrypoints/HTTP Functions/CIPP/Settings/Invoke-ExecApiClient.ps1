@@ -17,26 +17,7 @@ function Invoke-ExecApiClient {
             if (!$Apps) {
                 $Apps = @()
             } else {
-                $Apps = foreach ($Client in $Apps) {
-                    $Client = $Client | Select-Object -Property @{Name = 'ClientId'; Expression = { $_.RowKey } }, AppName, Role, IPRange, Enabled
-
-                    if (!$Client.Role) {
-                        $Client.Role = 'No Restrictions'
-                    }
-
-                    if ($Client.IPRange) {
-                        try {
-                            $IPRange = @($Client.IPRange | ConvertFrom-Json -ErrorAction Stop)
-                            if (($IPRange | Measure-Object).Count -eq 0) { @('Any') }
-                            $Client.IPRange = $IPRange
-                        } catch {
-                            $Client.IPRange = @('Any')
-                        }
-                    } else {
-                        $Client.IPRange = @('Any')
-                    }
-                    $Client
-                }
+                $Apps = Get-CippApiClient
                 $Body = @{ Results = @($Apps) }
             }
         }
@@ -152,7 +133,9 @@ function Invoke-ExecApiClient {
         }
         'Delete' {
             try {
-                $Apps = New-GraphGetRequest -uri "https://graph.microsoft.com/v1.0/applications?`$filter=signInAudience eq 'AzureAdMyOrg' and web/redirectUris/any(x:x eq 'https://$($sitename).azurewebsites.net/.auth/login/aad/callback')&`$top=999&`$select=id,appId&`$count=true" -NoAuthCheck $true -asapp $true -ComplexFilter
+                if ($Request.Body.RemoveAppReg -eq $true) {
+                    $Apps = New-GraphGetRequest -uri "https://graph.microsoft.com/v1.0/applications?`$filter=signInAudience eq 'AzureAdMyOrg' and web/redirectUris/any(x:x eq 'https://$($sitename).azurewebsites.net/.auth/login/aad/callback')&`$top=999&`$select=id,appId&`$count=true" -NoAuthCheck $true -asapp $true -ComplexFilter
+                }
                 $Id = $Apps | Where-Object { $_.appId -eq $Request.Body.ClientId } | Select-Object -ExpandProperty id
                 if ($Id) {
                     New-GraphPOSTRequest -uri "https://graph.microsoft.com/v1.0/applications(appId='$ClientId')" -Method DELETE -Body '{}' -NoAuthCheck $true -asapp $true
