@@ -17,10 +17,10 @@ function Test-CIPPAccess {
         $ForwardedFor = $Request.Headers.'x-forwarded-for' -split ',' | Select-Object -First 1
         $IPRegex = '^(?<IP>(?:\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-fA-F:]+\]|[0-9a-fA-F:]+))(?::\d+)?$'
         $IPAddress = $ForwardedFor -replace $IPRegex, '$1' -replace '[\[\]]', ''
-        Write-Information "API Access: AppId=$($Request.Headers.'x-ms-client-principal-name') IP=$IPAddress"
 
         $Client = Get-CippApiClient -AppId $Request.Headers.'x-ms-client-principal-name'
         if ($Client) {
+            Write-Information "API Access: AppName=$($Client.AppName), AppId=$($Request.Headers.'x-ms-client-principal-name'), IP=$IPAddress"
             $IPMatched = $false
             if ($Client.IPRange -notcontains 'Any') {
                 foreach ($Range in $Client.IPRange) {
@@ -44,6 +44,7 @@ function Test-CIPPAccess {
             }
         } else {
             $CustomRoles = @('cipp-api')
+            Write-Information "API Access: AppId=$($Request.Headers.'x-ms-client-principal-name'), IP=$IPAddress"
         }
     } else {
         $DefaultRoles = @('admin', 'editor', 'readonly', 'anonymous', 'authenticated')
