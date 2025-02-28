@@ -5,7 +5,12 @@
   },
   "editor": {
     "include": ["*.Read", "*.ReadWrite"],
-    "exclude": ["CIPP.SuperAdmin.*", "CIPP.Admin.*", "CIPP.AppSettings.*"]
+    "exclude": [
+      "CIPP.SuperAdmin.*",
+      "CIPP.Admin.*",
+      "CIPP.AppSettings.*",
+      "Tenant.Standards.ReadWrite"
+    ]
   },
   "admin": {
     "include": ["*"],

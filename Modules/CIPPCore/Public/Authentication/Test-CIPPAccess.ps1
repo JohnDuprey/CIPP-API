@@ -15,6 +15,11 @@ function Test-CIPPAccess {
     # Check help for role
     $APIRole = $Help.Role
 
+    # Get default roles from config
+    $CIPPCoreModuleRoot = Get-Module -Name CIPPCore | Select-Object -ExpandProperty ModuleBase
+    $CIPPRoot = (Get-Item $CIPPCoreModuleRoot).Parent.Parent
+    $BaseRoles = Get-Content -Path $CIPPRoot\Config\cipp-roles.json | ConvertFrom-Json
+
     if ($Request.Headers.'x-ms-client-principal-idp' -eq 'aad' -and $Request.Headers.'x-ms-client-principal-name' -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
         # Direct API Access
         $ForwardedFor = $Request.Headers.'x-forwarded-for' -split ',' | Select-Object -First 1
@@ -50,7 +55,7 @@ function Test-CIPPAccess {
             Write-Information "API Access: AppId=$($Request.Headers.'x-ms-client-principal-name'), IP=$IPAddress"
         }
     } else {
-        $DefaultRoles = @('admin', 'editor', 'readonly', 'anonymous', 'authenticated')
+        $DefaultRoles = @('superadmin', 'admin', 'editor', 'readonly', 'anonymous', 'authenticated')
         $User = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Request.Headers.'x-ms-client-principal')) | ConvertFrom-Json
 
         # Check for roles granted via group membership
@@ -67,23 +72,10 @@ function Test-CIPPAccess {
             return
         }
 
-        # Pattern match on API endpoint prefix for role mapping
-        if ($Request.Params.CIPPEndpoint -match '^(?:Add|Edit|Remove)') {
-            $AllowedRoles = @('superadmin', 'admin', 'editor')
-        }
-        if ($Request.Params.CIPPEndpoint -match '^(?:List|Get)') {
-            $AllowedRoles = @('superadmin', 'admin', 'editor', 'readonly')
-        }
-
-        if (!$TenantList.IsPresent -and $APIRole -match 'SuperAdmin' -and $User.userRoles -notcontains 'superadmin') {
-            throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required role'
-        }
-
         if ($User.userRoles -contains 'admin' -or $User.userRoles -contains 'superadmin') {
             if ($TenantList.IsPresent) {
                 return @('AllTenants')
             }
-            return $true
         }
 
         $CustomRoles = $User.userRoles | ForEach-Object {
@@ -92,17 +84,40 @@ function Test-CIPPAccess {
             }
         }
 
-        if (($CustomRoles | Measure-Object).Count -eq 0) {
-            $AllowedRoles = $AllowedRoles | ForEach-Object {
-                if ($User.userRoles -contains $_) {
-                    $_
+        $BaseRole = $null
+        foreach ($Role in $BaseRoles.PSObject.Properties) {
+            foreach ($UserRole in $User.userRoles) {
+                if ($Role.Name -eq $UserRole) {
+                    $BaseRole = $Role
+                    break
                 }
             }
-            if (($AllowedRoles | Measure-Object).Count -eq 0) {
-                throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required role'
+        }
+
+    }
+
+    # Check base role permissions before continuing to custom roles
+    if ($null -ne $BaseRole) {
+        Write-Information "Base Role: $($BaseRole.Name)"
+        $BaseRoleAllowed = $false
+        foreach ($Include in $BaseRole.Value.include) {
+            if ($APIRole -like $Include) {
+                $BaseRoleAllowed = $true
+                break
             }
         }
+        foreach ($Exclude in $BaseRole.Value.exclude) {
+            if ($APIRole -like $Exclude) {
+                $BaseRoleAllowed = $false
+                break
+            }
+        }
+        if (!$BaseRoleAllowed) {
+            throw "Access to this CIPP API endpoint is not allowed, the '$($BaseRole.Name)' base role does not have the required permission: $APIRole"
+        }
     }
+
+    # Check custom role permissions for limitations on api calls or tenants
     if (($CustomRoles | Measure-Object).Count -gt 0) {
         $Tenants = Get-Tenants -IncludeErrors
         $PermissionsFound = $false
@@ -129,6 +144,7 @@ function Test-CIPPAccess {
                 }
                 return $LimitedTenantList
             }
+
             foreach ($Role in $PermissionSet) {
                 # Loop through each custom role permission and check API / Tenant access
                 $TenantAllowed = $false

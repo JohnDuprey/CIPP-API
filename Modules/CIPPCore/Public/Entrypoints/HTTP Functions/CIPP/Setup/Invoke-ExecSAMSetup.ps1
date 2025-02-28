@@ -5,7 +5,7 @@ Function Invoke-ExecSAMSetup {
     .FUNCTIONALITY
         Entrypoint
     .ROLE
-        CIPP.Admin.ReadWrite
+        CIPP.Core.ReadWrite
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
     [CmdletBinding()]
