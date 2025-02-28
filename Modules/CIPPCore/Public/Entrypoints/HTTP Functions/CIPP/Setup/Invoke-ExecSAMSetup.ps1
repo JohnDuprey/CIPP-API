@@ -5,7 +5,7 @@ Function Invoke-ExecSAMSetup {
     .FUNCTIONALITY
         Entrypoint
     .ROLE
-        CIPP.AppSettings.ReadWrite
+        CIPP.Admin.ReadWrite
     #>
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
