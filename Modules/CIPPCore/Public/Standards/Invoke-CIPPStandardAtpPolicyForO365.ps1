@@ -7,18 +7,19 @@ function Invoke-CIPPStandardAtpPolicyForO365 {
     .SYNOPSIS
         (Label) Default Atp Policy For O365
     .DESCRIPTION
-        (Helptext) This creates a Atp policy that enables Defender for Office 365 for Sharepoint, OneDrive and Microsoft Teams.
-        (DocsDescription) This creates a Atp policy that enables Defender for Office 365 for Sharepoint, OneDrive and Microsoft Teams.
+        (Helptext) This creates a Atp policy that enables Defender for Office 365 for SharePoint, OneDrive and Microsoft Teams.
+        (DocsDescription) This creates a Atp policy that enables Defender for Office 365 for SharePoint, OneDrive and Microsoft Teams.
     .NOTES
         CAT
             Defender Standards
         TAG
-            "lowimpact"
             "CIS"
         ADDEDCOMPONENT
-            {"type":"boolean","label":"Allow people to click through Protected View even if Safe Documents identified the file as malicious","name":"standards.AtpPolicyForO365.AllowSafeDocsOpen","default":false}
+            {"type":"switch","label":"Allow people to click through Protected View even if Safe Documents identified the file as malicious","name":"standards.AtpPolicyForO365.AllowSafeDocsOpen","defaultValue":false,"required":false}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-03-25
         POWERSHELLEQUIVALENT
             Set-AtpPolicyForO365
         RECOMMENDEDBY
@@ -26,7 +27,7 @@ function Invoke-CIPPStandardAtpPolicyForO365 {
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/defender-standards#low-impact
     #>
 
     param($Tenant, $Settings)

@@ -1,13 +1,39 @@
 function Invoke-CIPPStandardGroupTemplate {
     <#
     .FUNCTIONALITY
-    Internal
+        Internal
+    .COMPONENT
+        (APIName) GroupTemplate
+    .SYNOPSIS
+        (Label) Group Template
+    .DESCRIPTION
+        (Helptext) Deploy and manage group templates.
+        (DocsDescription) Deploy and manage group templates.
+    .NOTES
+        MULTI
+            True
+        CAT
+            Templates
+        DISABLEDFEATURES
+            
+        IMPACT
+            Medium Impact
+        ADDEDDATE
+            2023-12-30
+        ADDEDCOMPONENT
+            {"type":"autoComplete","name":"groupTemplate","label":"Select Group Template","api":{"url":"/api/ListGroupTemplates","labelField":"Displayname","valueField":"GUID","queryKey":"ListGroupTemplates"}}
+        UPDATECOMMENTBLOCK
+            Run the Tools\Update-StandardsComments.ps1 script to update this comment block
+    .LINK
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/
     #>
     param($Tenant, $Settings)
     ##$Rerun -Type Standard -Tenant $Tenant -Settings $Settings 'GroupTemplate'
 
     If ($Settings.remediate -eq $true) {
-
+        #Because the list name changed from TemplateList to groupTemplate by someone :@, we'll need to set it back to TemplateList
+        $Settings.groupTemplate ? ($Settings | Add-Member -NotePropertyName 'TemplateList' -NotePropertyValue $Settings.groupTemplate) : $null
+        Write-Host "Settings: $($Settings.TemplateList | ConvertTo-Json)"
         foreach ($Template in $Settings.TemplateList) {
             try {
                 $Table = Get-CippTable -tablename 'templates'
@@ -52,7 +78,7 @@ function Invoke-CIPPStandardGroupTemplate {
                             $GraphRequest = New-ExoRequest -tenantid $tenant -cmdlet 'New-DistributionGroup' -cmdParams $params
                         }
                     }
-                    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API 'Standards' -tenant $tenant -message "Created group $($groupobj.displayname) with id $($GraphRequest.id) " -Sev 'Info'
+                    Write-LogMessage -API 'Standards' -tenant $tenant -message "Created group $($groupobj.displayname) with id $($GraphRequest.id) " -Sev 'Info'
                 } else {
                     if ($groupobj.groupType -in 'Generic', 'azurerole', 'dynamic') {
                         $GraphRequest = New-GraphPostRequest -uri "https://graph.microsoft.com/beta/groups/$($CheckExististing.id)" -tenantid $tenant -type PATCH -body (ConvertTo-Json -InputObject $BodyToship -Depth 10) -verbose
@@ -76,7 +102,7 @@ function Invoke-CIPPStandardGroupTemplate {
                             $GraphRequest = New-ExoRequest -tenantid $tenant -cmdlet 'Set-DistributionGroup' -cmdParams $params
                         }
                     }
-                    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API 'Standards' -tenant $tenant -message "Group exists $($groupobj.displayname). Updated to latest settings." -Sev 'Info'
+                    Write-LogMessage -API 'Standards' -tenant $tenant -message "Group exists $($groupobj.displayname). Updated to latest settings." -Sev 'Info'
 
                 }
             } catch {

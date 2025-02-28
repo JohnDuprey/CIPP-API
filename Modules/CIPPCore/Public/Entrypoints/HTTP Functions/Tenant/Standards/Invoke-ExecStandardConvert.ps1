@@ -162,7 +162,7 @@ function Invoke-ExecStandardConvert {
 
         if ($Tenant -eq 'AllTenants' -and $Excluded) {
             $ExcludedArr = $Excluded | ForEach-Object { $_ }
-            $NewTemplate | Add-Member -NotePropertyName 'excludedTenants' -NotePropertyValue $ExcludedArr -Force
+            $NewTemplate | Add-Member -NotePropertyName 'excludedTenants' -NotePropertyValue @($ExcludedArr) -Force
         }
 
         return $NewTemplate
@@ -204,7 +204,7 @@ function Invoke-ExecStandardConvert {
         $Converted | Add-Member -NotePropertyName 'createdAt' -NotePropertyValue ((Get-Date).ToUniversalTime()) -Force
         $Converted | Add-Member -NotePropertyName 'updatedBy' -NotePropertyValue 'System' -Force
         $Converted | Add-Member -NotePropertyName 'updatedAt' -NotePropertyValue (Get-Date).ToUniversalTime() -Force
-        $JSON = ConvertTo-Json -Depth 40 -InputObject $Converted
+        $JSON = ConvertTo-Json -Depth 100 -InputObject $Converted -Compress
 
         $Table = Get-CippTable -tablename 'templates'
         $Table.Force = $true

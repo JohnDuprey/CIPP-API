@@ -13,20 +13,22 @@ function Invoke-CIPPStandardOauthConsent {
         CAT
             Entra (AAD) Standards
         TAG
-            "mediumimpact"
             "CIS"
         ADDEDCOMPONENT
-            {"type":"input","name":"standards.OauthConsent.AllowedApps","label":"Allowed application IDs, comma separated"}
+            {"type":"textField","name":"standards.OauthConsent.AllowedApps","label":"Allowed application IDs, comma separated","required":false}
         IMPACT
             Medium Impact
+        ADDEDDATE
+            2021-11-16
         POWERSHELLEQUIVALENT
             Update-MgPolicyAuthorizationPolicy
         RECOMMENDEDBY
             "CIS"
+            "CIPP"
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/entra-aad-standards#medium-impact
     #>
 
     param($tenant, $settings)

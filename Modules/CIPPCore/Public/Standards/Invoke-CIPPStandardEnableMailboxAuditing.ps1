@@ -13,20 +13,22 @@ function Invoke-CIPPStandardEnableMailboxAuditing {
         CAT
             Exchange Standards
         TAG
-            "lowimpact"
             "CIS"
             "exo_mailboxaudit"
         ADDEDCOMPONENT
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-01-08
         POWERSHELLEQUIVALENT
             Set-OrganizationConfig -AuditDisabled \$false
         RECOMMENDEDBY
             "CIS"
+            "CIPP"
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/exchange-standards#low-impact
     #>
 
     param($Tenant, $Settings)

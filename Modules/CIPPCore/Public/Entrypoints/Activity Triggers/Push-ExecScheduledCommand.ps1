@@ -11,9 +11,39 @@ function Push-ExecScheduledCommand {
     $task = $Item.TaskInfo
     $commandParameters = $Item.Parameters | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
 
-    $tenant = $Item.Parameters.TenantFilter
+    $Function = Get-Command -Name $Item.Command
+    if ($null -eq $Function) {
+        $Results = "Task Failed: The command $($Item.Command) does not exist."
+        $State = 'Failed'
+        Update-AzDataTableEntity -Force @Table -Entity @{
+            PartitionKey = $task.PartitionKey
+            RowKey       = $task.RowKey
+            Results      = "$Results"
+            TaskState    = $State
+        }
+        Write-LogMessage -API 'Scheduler_UserTasks' -tenant $tenant -message "Failed to execute task $($task.Name): The command $($Item.Command) does not exist." -sev Error
+        return
+    }
+
+    try {
+        $PossibleParams = $Function.Parameters.Keys
+        $keysToRemove = [System.Collections.Generic.List[string]]@()
+        foreach ($key in $commandParameters.Keys) {
+            if (-not ($PossibleParams -contains $key)) {
+                $keysToRemove.Add($key)
+            }
+        }
+        foreach ($key in $keysToRemove) {
+            $commandParameters.Remove($key)
+        }
+    } catch {
+        Write-Host "Failed to remove parameters: $($_.Exception.Message)"
+    }
+
+    $tenant = $Item.Parameters.TenantFilter ?? $Item.Tenant
     Write-Host "Started Task: $($Item.Command) for tenant: $tenant"
     try {
+
         try {
             Write-Host "Starting task: $($Item.Command) with parameters: $($commandParameters | ConvertTo-Json)"
             $results = & $Item.Command @commandParameters

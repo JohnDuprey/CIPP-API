@@ -13,12 +13,13 @@ function Invoke-CIPPStandardOutBoundSpamAlert {
         CAT
             Exchange Standards
         TAG
-            "lowimpact"
             "CIS"
         ADDEDCOMPONENT
-            {"type":"input","name":"standards.OutBoundSpamAlert.OutboundSpamContact","label":"Outbound spam contact"}
+            {"type":"textField","name":"standards.OutBoundSpamAlert.OutboundSpamContact","label":"Outbound spam contact"}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2023-05-03
         POWERSHELLEQUIVALENT
             Set-HostedOutboundSpamFilterPolicy
         RECOMMENDEDBY
@@ -26,7 +27,7 @@ function Invoke-CIPPStandardOutBoundSpamAlert {
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/exchange-standards#low-impact
     #>
 
     param($Tenant, $Settings)

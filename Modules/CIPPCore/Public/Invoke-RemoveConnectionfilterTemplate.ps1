@@ -10,29 +10,31 @@ Function Invoke-RemoveConnectionfilterTemplate {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    $User = $request.headers.'x-ms-client-principal'
-    Write-LogMessage -user $User -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    $Headers = $Request.Headers
+    Write-LogMessage -Headers $Headers -API $APIName -message 'Accessed this API' -Sev 'Debug'
 
-    $ID = $request.body.id
+    $ID = $Request.body.ID
     try {
         $Table = Get-CippTable -tablename 'templates'
-        $Filter = "PartitionKey eq 'ConnectionfilterTemplate' and RowKey eq '$id'"
+        $Filter = "PartitionKey eq 'ConnectionfilterTemplate' and RowKey eq '$ID'"
         $ClearRow = Get-CIPPAzDataTableEntity @Table -Filter $Filter -Property PartitionKey, RowKey
-        Remove-AzDataTableEntity -Force @Table -Entity $clearRow
-        Write-LogMessage -user $User -API $APINAME -message "Removed Connection Filter Template with ID $ID." -Sev 'Info'
-        $body = [pscustomobject]@{'Results' = 'Successfully removed Connection Filter Template' }
+        Remove-AzDataTableEntity -Force @Table -Entity $ClearRow
+        $Result = "Removed Connection Filter template with ID $($ID)"
+        Write-LogMessage -Headers $Headers -API $APIName -message $Result -Sev 'Info'
+        $StatusCode = [HttpStatusCode]::OK
     } catch {
         $ErrorMessage = Get-CippException -Exception $_
-        Write-LogMessage -user $User -API $APINAME -message "Failed to remove Connection Filter template $ID. $($ErrorMessage.NormalizedError)" -Sev 'Error' -LogData $ErrorMessage
-        $body = [pscustomobject]@{'Results' = "Failed to remove template: $($ErrorMessage.NormalizedError)" }
+        $Result = "Failed to remove Connection Filter template with ID $ID. $($ErrorMessage.NormalizedError)"
+        Write-LogMessage -Headers $Headers -API $APIName -message $Result -Sev 'Error' -LogData $ErrorMessage
+        $StatusCode = [HttpStatusCode]::Forbidden
     }
 
 
     # Associate values to output bindings by calling 'Push-OutputBinding'.
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-            StatusCode = [HttpStatusCode]::OK
-            Body       = $body
+            StatusCode = $StatusCode
+            Body       = @{'Results' = $Result }
         })
 
 

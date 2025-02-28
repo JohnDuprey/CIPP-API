@@ -11,22 +11,24 @@ Function Invoke-AddConnectionFilter {
     param($Request, $TriggerMetadata)
 
 
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    $Headers = $Request.Headers
+    Write-LogMessage -headers $Headers -API $APIName -message 'Accessed this API' -Sev 'Debug'
 
-    $RequestParams = $Request.Body.PowerShellCommand | 
-    ConvertFrom-Json | 
-    Select-Object -Property *, @{Name='identity'; Expression={$_.name}} -ExcludeProperty GUID, comments, name
+    $RequestParams = $Request.Body.PowerShellCommand |
+        ConvertFrom-Json |
+        Select-Object -Property *, @{Name = 'identity'; Expression = { $_.name } } -ExcludeProperty GUID, comments, name
 
     $Tenants = ($Request.body.selectedTenants).value
-    $Result = foreach ($Tenantfilter in $tenants) {
+    $Result = foreach ($TenantFilter in $Tenants) {
         try {
-            $GraphRequest = New-ExoRequest -tenantid $Tenantfilter -cmdlet 'Set-HostedConnectionFilterPolicy' -cmdParams $RequestParams
-            "Successfully created Connectionfilter for $tenantfilter."
-            Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -tenant $tenantfilter -message "Updated Connection filter rule for $($tenantfilter)" -sev Info
+            $null = New-ExoRequest -tenantid $TenantFilter -cmdlet 'Set-HostedConnectionFilterPolicy' -cmdParams $RequestParams
+            "Successfully created Connection filter for $TenantFilter."
+            Write-LogMessage -headers $Headers -API $APIName -tenant $TenantFilter -message "Updated Connection filter rule for $($TenantFilter)" -sev Info
         } catch {
-            "Could not create create Connection Filter rule for $($tenantfilter): $($_.Exception.message)"
-            Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -tenant $tenantfilter -message "Could not create create connection filter rule for $($tenantfilter): $($_.Exception.message)" -sev Error
+            $ErrorMessage = Get-CippException -Exception $_
+            "Failed to create Connection Filter rule for $($TenantFilter): $($ErrorMessage.NormalizedError)"
+            Write-LogMessage -headers $Headers -API $APIName -tenant $TenantFilter -message "Failed to create connection filter rule for $($TenantFilter): $($ErrorMessage.NormalizedError)" -sev Error -LogData $ErrorMessage
         }
     }
 

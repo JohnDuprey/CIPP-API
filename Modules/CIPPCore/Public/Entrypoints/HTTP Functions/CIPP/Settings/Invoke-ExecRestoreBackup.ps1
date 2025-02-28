@@ -10,8 +10,8 @@ Function Invoke-ExecRestoreBackup {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Accessed this API' -Sev 'Debug'
     try {
 
         if ($Request.Body.BackupName -like 'CippBackup_*') {
@@ -26,7 +26,7 @@ Function Invoke-ExecRestoreBackup {
                     $Table.Entity = $ht2
                     Add-CIPPAzDataTableEntity @Table -Force
                 }
-                Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Created backup' -Sev 'Debug'
+                Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Created backup' -Sev 'Debug'
                 $body = [pscustomobject]@{
                     'Results' = 'Successfully restored backup.'
                 }
@@ -41,16 +41,16 @@ Function Invoke-ExecRestoreBackup {
                 $ht2 = @{}
                 $line.psobject.properties | ForEach-Object { $ht2[$_.Name] = [string]$_.Value }
                 $Table.Entity = $ht2
-                Add-CIPPAzDataTableEntity @Table -Force
+                Add-AzDataTableEntity @Table -Force
             }
-            Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Created backup' -Sev 'Debug'
+            Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Created backup' -Sev 'Debug'
 
             $body = [pscustomobject]@{
                 'Results' = 'Successfully restored backup.'
             }
         }
     } catch {
-        Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message "Failed to restore backup: $($_.Exception.Message)" -Sev 'Error'
+        Write-LogMessage -headers $Request.Headers -API $APINAME -message "Failed to restore backup: $($_.Exception.Message)" -Sev 'Error'
         $body = [pscustomobject]@{'Results' = "Backup restore failed: $($_.Exception.Message)" }
     }
 

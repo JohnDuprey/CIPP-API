@@ -13,21 +13,22 @@ function Invoke-CIPPStandardMailContacts {
         CAT
             Global Standards
         TAG
-            "lowimpact"
         ADDEDCOMPONENT
-            {"type":"input","name":"standards.MailContacts.GeneralContact","label":"General Contact"}
-            {"type":"input","name":"standards.MailContacts.SecurityContact","label":"Security Contact"}
-            {"type":"input","name":"standards.MailContacts.MarketingContact","label":"Marketing Contact"}
-            {"type":"input","name":"standards.MailContacts.TechContact","label":"Technical Contact"}
+            {"type":"textField","name":"standards.MailContacts.GeneralContact","label":"General Contact","required":false}
+            {"type":"textField","name":"standards.MailContacts.SecurityContact","label":"Security Contact","required":false}
+            {"type":"textField","name":"standards.MailContacts.MarketingContact","label":"Marketing Contact","required":false}
+            {"type":"textField","name":"standards.MailContacts.TechContact","label":"Technical Contact","required":false}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2022-03-13
         POWERSHELLEQUIVALENT
             Set-MsolCompanyContactInformation
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/global-standards#low-impact
     #>
 
     param($Tenant, $Settings)

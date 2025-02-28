@@ -13,21 +13,23 @@ function Invoke-CIPPStandardEnableMailTips {
         CAT
             Exchange Standards
         TAG
-            "lowimpact"
             "CIS"
             "exo_mailtipsenabled"
         ADDEDCOMPONENT
-            {"type":"number","name":"standards.EnableMailTips.MailTipsLargeAudienceThreshold","label":"Number of recipients to trigger the large audience MailTip (Default is 25)","placeholder":"Enter a profile name","default":25}
+            {"type":"number","name":"standards.EnableMailTips.MailTipsLargeAudienceThreshold","label":"Number of recipients to trigger the large audience MailTip (Default is 25)","placeholder":"Enter a profile name","defaultValue":25}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-01-14
         POWERSHELLEQUIVALENT
             Set-OrganizationConfig
         RECOMMENDEDBY
             "CIS"
+            "CIPP"
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/exchange-standards#low-impact
     #>
 
     param($Tenant, $Settings)

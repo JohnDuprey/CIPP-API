@@ -10,17 +10,17 @@ Function Invoke-ExecDeleteGDAPRoleMapping {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Accessed this API' -Sev 'Debug'
     $Table = Get-CIPPTable -TableName 'GDAPRoles'
 
-    Write-Host $Table
+    $GroupId = $Request.Query.GroupId ?? $Request.Body.GroupId
     try {
-        $Filter = "PartitionKey eq 'Roles' and RowKey eq '{0}'" -f $Request.Query.GroupId
+        $Filter = "PartitionKey eq 'Roles' and RowKey eq '{0}'" -f $GroupId
         $Entity = Get-CIPPAzDataTableEntity @Table -Filter $Filter
         Remove-AzDataTableEntity -Force @Table -Entity $Entity
         $Results = [pscustomobject]@{'Results' = 'Success. GDAP relationship mapping deleted' }
-        Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message "GDAP relationship mapping deleted for $($Request.Query.GroupId)" -Sev 'Info'
+        Write-LogMessage -headers $Request.Headers -API $APINAME -message "GDAP relationship mapping deleted for $($GroupId)" -Sev 'Info'
 
     } catch {
         $Results = [pscustomobject]@{'Results' = "Failed. $($_.Exception.Message)" }

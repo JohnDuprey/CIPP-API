@@ -11,9 +11,9 @@ Function Invoke-ExecJITAdmin {
     param($Request, $TriggerMetadata)
 
     $APIName = 'ExecJITAdmin'
-    $User = $Request.Headers.'x-ms-client-principal'
+    $User = $Request.Headers
     $TenantFilter = $Request.body.TenantFilter.value ? $Request.body.TenantFilter.value : $Request.body.TenantFilter
-    Write-LogMessage -user $User -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    Write-LogMessage -Headers $User -API $APINAME -message 'Accessed this API' -Sev 'Debug'
 
     if ($Request.Query.Action -eq 'List') {
         $Schema = Get-CIPPSchemaExtensions | Where-Object { $_.id -match '_cippUser' }
@@ -63,14 +63,14 @@ Function Invoke-ExecJITAdmin {
         if ($Request.Body.existingUser.value -match '^[a-f0-9]{8}-([a-f0-9]{4}-){3}[a-f0-9]{12}$') {
             $Username = (New-GraphGetRequest -uri "https://graph.microsoft.com/v1.0/users/$($Request.Body.existingUser.value)" -tenantid $TenantFilter).userPrincipalName
         }
-        Write-LogMessage -user $User -API $APINAME -message "Executing JIT Admin for $Username" -tenant $TenantFilter -Sev 'Info'
+        Write-LogMessage -Headers $User -API $APINAME -message "Executing JIT Admin for $Username" -tenant $TenantFilter -Sev 'Info'
 
         $Start = ([System.DateTimeOffset]::FromUnixTimeSeconds($Request.Body.StartDate)).DateTime.ToLocalTime()
         $Expiration = ([System.DateTimeOffset]::FromUnixTimeSeconds($Request.Body.EndDate)).DateTime.ToLocalTime()
         $Results = [System.Collections.Generic.List[string]]::new()
 
         if ($Request.Body.useraction -eq 'Create') {
-            Write-LogMessage -user $User -API $APINAME -tenant $TenantFilter -message "Creating JIT Admin user $($Request.Body.Username)" -Sev 'Info'
+            Write-LogMessage -Headers $User -API $APINAME -tenant $TenantFilter -message "Creating JIT Admin user $($Request.Body.Username)" -Sev 'Info'
             Write-Information "Creating JIT Admin user $($Request.Body.username)"
             $JITAdmin = @{
                 User         = @{
@@ -92,6 +92,7 @@ Function Invoke-ExecJITAdmin {
             Start-Sleep -Seconds 1
         }
 
+        #Region TAP creation
         if ($Request.Body.UseTAP) {
             try {
                 if ($Start -gt (Get-Date)) {
@@ -102,19 +103,20 @@ Function Invoke-ExecJITAdmin {
                 } else {
                     $TapBody = '{}'
                 }
-                Write-Information "https://graph.microsoft.com/beta/users/$Username/authentication/temporaryAccessPassMethods"
-                # Retry creating the TAP up to 5 times, since it can fail due to the user not being fully created yet
+                # Write-Information "https://graph.microsoft.com/beta/users/$Username/authentication/temporaryAccessPassMethods"
+                # Retry creating the TAP up to 10 times, since it can fail due to the user not being fully created yet. Sometimes it takes 2 reties, sometimes it takes 8+. Very annoying. -Bobby
                 $Retries = 0
+                $MAX_TAP_RETRIES = 10
                 do {
                     try {
                         $TapRequest = New-GraphPostRequest -uri "https://graph.microsoft.com/beta/users/$($Username)/authentication/temporaryAccessPassMethods" -tenantid $TenantFilter -type POST -body $TapBody
                     } catch {
                         Start-Sleep -Seconds 2
-                        Write-Information 'ERROR: Failed to create TAP, retrying'
-                        Write-Information ( ConvertTo-Json -Depth 5 -InputObject (Get-CippException -Exception $_))
+                        Write-Information "ERROR: Run $Retries of $MAX_TAP_RETRIES : Failed to create TAP, retrying"
+                        # Write-Information ( ConvertTo-Json -Depth 5 -InputObject (Get-CippException -Exception $_))
                     }
                     $Retries++
-                } while ( $null -eq $TapRequest.temporaryAccessPass -and $Retries -le 5 )
+                } while ( $null -eq $TapRequest.temporaryAccessPass -and $Retries -le $MAX_TAP_RETRIES )
 
                 $TempPass = $TapRequest.temporaryAccessPass
                 $PasswordExpiration = $TapRequest.LifetimeInMinutes
@@ -135,6 +137,7 @@ Function Invoke-ExecJITAdmin {
                 }
             }
         }
+        #EndRegion TAP creation
 
         $Parameters = @{
             TenantFilter = $TenantFilter

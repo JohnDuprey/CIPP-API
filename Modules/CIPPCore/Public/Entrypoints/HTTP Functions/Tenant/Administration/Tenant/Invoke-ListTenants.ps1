@@ -10,10 +10,11 @@ Function Invoke-ListTenants {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
+    $APIName = $Request.Params.CIPPEndpoint
 
-    Write-LogMessage -user $Request.Headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Accessed this API' -Sev 'Debug'
     $TenantAccess = Test-CIPPAccess -Request $Request -TenantList
+    Write-Host "Tenant Access: $TenantAccess"
 
     if ($TenantAccess -notcontains 'AllTenants') {
         $AllTenantSelector = $false
@@ -45,7 +46,20 @@ Function Invoke-ListTenants {
         return
     }
     if ($Request.Query.TriggerRefresh) {
-        Get-Tenants -IncludeAll -TriggerRefresh
+        if ($Request.Query.TenantFilter -and $Request.Query.TenantFilter -ne 'AllTenants') {
+            Get-Tenants -TriggerRefresh -TenantFilter $Request.Query.TenantFilter
+        } else {
+            $InputObject = [PSCustomObject]@{
+                Batch            = @(
+                    @{
+                        FunctionName = 'UpdateTenants'
+                    }
+                )
+                OrchestratorName = 'UpdateTenants'
+                SkipLog          = $true
+            }
+            Start-NewOrchestration -FunctionName 'CIPPOrchestrator' -InputObject ($InputObject | ConvertTo-Json -Compress -Depth 5)
+        }
     }
     try {
         $tenantfilter = $Request.Query.TenantFilter
@@ -78,9 +92,9 @@ Function Invoke-ListTenants {
             $body = $Tenants | Where-Object -Property defaultDomainName -EQ $Tenantfilter
         }
 
-        Write-LogMessage -user $request.headers.'x-ms-client-principal' -tenant $Tenantfilter -API $APINAME -message 'Listed Tenant Details' -Sev 'Debug'
+        Write-LogMessage -headers $Request.Headers -tenant $Tenantfilter -API $APINAME -message 'Listed Tenant Details' -Sev 'Debug'
     } catch {
-        Write-LogMessage -user $request.headers.'x-ms-client-principal' -tenant $Tenantfilter -API $APINAME -message "List Tenant failed. The error is: $($_.Exception.Message)" -Sev 'Error'
+        Write-LogMessage -headers $Request.Headers -tenant $Tenantfilter -API $APINAME -message "List Tenant failed. The error is: $($_.Exception.Message)" -Sev 'Error'
         $body = [pscustomobject]@{
             'Results'         = "Failed to retrieve tenants: $($_.Exception.Message)"
             defaultDomainName = ''

@@ -10,12 +10,12 @@ Function Invoke-ListTransportRules {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
-    $Tenantfilter = $request.Query.tenantfilter
+    $APIName = $Request.Params.CIPPEndpoint
+    Write-LogMessage -headers $Request.Headers -API $APIName -message 'Accessed this API' -Sev 'Debug'
+    $TenantFilter = $request.Query.tenantFilter
 
     try {
-        $GraphRequest = New-ExoRequest -tenantid $Tenantfilter -cmdlet 'Get-TransportRule'
+        $GraphRequest = New-ExoRequest -tenantid $TenantFilter -cmdlet 'Get-TransportRule'
         $StatusCode = [HttpStatusCode]::OK
     } catch {
         $ErrorMessage = Get-NormalizedError -Message $_.Exception.Message

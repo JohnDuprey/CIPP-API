@@ -13,18 +13,19 @@ function Invoke-CIPPStandardExcludedfileExt {
         CAT
             SharePoint Standards
         TAG
-            "highimpact"
         ADDEDCOMPONENT
-            {"type":"input","name":"standards.ExcludedfileExt.ext","label":"Extensions, Comma separated"}
+            {"type":"textField","name":"standards.ExcludedfileExt.ext","label":"Extensions, Comma separated"}
         IMPACT
             High Impact
+        ADDEDDATE
+            2022-06-15
         POWERSHELLEQUIVALENT
-            Update-MgAdminSharepointSetting
+            Update-MgAdminSharePointSetting
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/sharepoint-standards#high-impact
     #>
 
     param($Tenant, $Settings)

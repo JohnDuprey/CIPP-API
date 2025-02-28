@@ -13,17 +13,18 @@ function Invoke-CIPPStandardDisableSecurityGroupUsers {
         CAT
             Entra (AAD) Standards
         TAG
-            "mediumimpact"
         ADDEDCOMPONENT
         IMPACT
             Medium Impact
+        ADDEDDATE
+            2022-07-17
         POWERSHELLEQUIVALENT
             Update-MgBetaPolicyAuthorizationPolicy
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/entra-aad-standards#medium-impact
     #>
 
     param($Tenant, $Settings)

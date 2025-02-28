@@ -10,23 +10,30 @@ Function Invoke-ExecHideFromGAL {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $Headers = $Request.Headers
+    $APIName = $Request.Params.CIPPEndpoint
+    Write-LogMessage -Headers $Headers -API $APINAME -message 'Accessed this API' -Sev 'Debug'
 
 
-    $TenantFilter = $request.query.tenantfilter
+    # Support if the request is a POST or a GET. So to support legacy(GET) and new(POST) requests
+    $UserId = $Request.Query.ID ?? $Request.body.ID
+    $TenantFilter = $Request.Query.TenantFilter ?? $Request.body.tenantFilter
+    $HideFromGAL = $Request.Query.HideFromGAL ?? $Request.body.HideFromGAL
+    $HideFromGAL = [System.Convert]::ToBoolean($HideFromGAL)
+
     Try {
-        $Hidden = [System.Convert]::ToBoolean($Request.query.HideFromGal)
-        $HideResults = Set-CIPPHideFromGAL -tenantFilter $tenantFilter -userid $Request.query.ID -HideFromGAL $Hidden -ExecutingUser $request.headers.'x-ms-client-principal' -APIName 'ExecOffboardUser'
+        $HideResults = Set-CIPPHideFromGAL -tenantFilter $TenantFilter -UserID $UserId -hidefromgal $Hidden -Headers $Request.Headers -APIName $APIName
         $Results = [pscustomobject]@{'Results' = $HideResults }
+        $StatusCode = [HttpStatusCode]::OK
 
     } catch {
-        $Results = [pscustomobject]@{'Results' = "Failed. $($_.Exception.Message)" }
-        Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -tenant $($tenantfilter) -message "Hide/UnHide from GAL failed: $($_.Exception.Message)" -Sev 'Error'
+        $ErrorMessage = Get-CippException -Exception $_
+        $Results = [pscustomobject]@{'Results' = "Failed. $($ErrorMessage.NormalizedError)" }
+        $StatusCode = [HttpStatusCode]::Forbidden
     }
     # Associate values to output bindings by calling 'Push-OutputBinding'.
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-            StatusCode = [HttpStatusCode]::OK
+            StatusCode = $StatusCode
             Body       = $Results
         })
 

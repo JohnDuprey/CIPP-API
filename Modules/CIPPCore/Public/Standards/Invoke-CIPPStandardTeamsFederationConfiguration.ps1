@@ -13,21 +13,22 @@ Function Invoke-CIPPStandardTeamsFederationConfiguration {
         CAT
             Teams Standards
         TAG
-            "mediumimpact"
         ADDEDCOMPONENT
-            {"type":"boolean","name":"standards.TeamsFederationConfiguration.AllowTeamsConsumer","label":"Allow users to communicate with other organizations"}
-            {"type":"boolean","name":"standards.TeamsFederationConfiguration.AllowPublicUsers","label":"Allow users to communicate with Skype Users"}
-            {"type":"Select","name":"standards.TeamsFederationConfiguration.DomainControl","label":"Communication Mode","values":[{"label":"Allow all external domains","value":"AllowAllExternal"},{"label":"Block all external domains","value":"BlockAllExternal"},{"label":"Allow specific external domains","value":"AllowSpecificExternal"},{"label":"Block specific external domains","value":"BlockSpecificExternal"}]}
-            {"type":"input","name":"standards.TeamsFederationConfiguration.DomainList","label":"Domains, Comma separated"}
+            {"type":"switch","name":"standards.TeamsFederationConfiguration.AllowTeamsConsumer","label":"Allow users to communicate with other organizations"}
+            {"type":"switch","name":"standards.TeamsFederationConfiguration.AllowPublicUsers","label":"Allow users to communicate with Skype Users"}
+            {"type":"autoComplete","required":true,"multiple":false,"creatable":false,"name":"standards.TeamsFederationConfiguration.DomainControl","label":"Communication Mode","options":[{"label":"Allow all external domains","value":"AllowAllExternal"},{"label":"Block all external domains","value":"BlockAllExternal"},{"label":"Allow specific external domains","value":"AllowSpecificExternal"},{"label":"Block specific external domains","value":"BlockSpecificExternal"}]}
+            {"type":"textField","name":"standards.TeamsFederationConfiguration.DomainList","label":"Domains, Comma separated","required":false}
         IMPACT
             Medium Impact
+        ADDEDDATE
+            2024-07-31
         POWERSHELLEQUIVALENT
             Set-CsTenantFederationConfiguration
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/teams-standards#medium-impact
     #>
 
     param($Tenant, $Settings)
@@ -36,7 +37,8 @@ Function Invoke-CIPPStandardTeamsFederationConfiguration {
     $CurrentState = New-TeamsRequest -TenantFilter $Tenant -Cmdlet 'Get-CsTenantFederationConfiguration' -CmdParams @{Identity = 'Global' }
     | Select-Object *
 
-    Switch ($Settings.DomainControl) {
+    $DomainControl = $Settings.DomainControl.value ?? $Settings.DomainControl
+    Switch ($DomainControl) {
         'AllowAllExternal' {
             $AllowFederatedUsers = $true
             $AllowedDomainsAsAList = 'AllowAllKnownDomains'
@@ -64,6 +66,10 @@ Function Invoke-CIPPStandardTeamsFederationConfiguration {
             } else {
                 $BlockedDomains = @()
             }
+        }
+        Default {
+            Write-LogMessage -API 'Standards' -tenant $Tenant -message "Federation Configuration: Invalid $DomainControl parameter" -sev Error
+            Return
         }
     }
 

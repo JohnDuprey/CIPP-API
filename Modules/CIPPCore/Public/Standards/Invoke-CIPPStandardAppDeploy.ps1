@@ -13,18 +13,19 @@ function Invoke-CIPPStandardAppDeploy {
         CAT
             Entra (AAD) Standards
         TAG
-            "lowimpact"
         ADDEDCOMPONENT
-            {"type":"input","name":"standards.AppDeploy.appids","label":"Application IDs, comma separated"}
+            {"type":"textField","name":"standards.AppDeploy.appids","label":"Application IDs, comma separated"}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-07-07
         POWERSHELLEQUIVALENT
             Portal or Graph API
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/entra-aad-standards#low-impact
     #>
 
     param($Tenant, $Settings)

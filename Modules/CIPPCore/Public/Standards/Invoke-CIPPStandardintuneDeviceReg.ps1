@@ -7,24 +7,25 @@ function Invoke-CIPPStandardintuneDeviceReg {
     .SYNOPSIS
         (Label) Set Maximum Number of Devices per user
     .DESCRIPTION
-        (Helptext) sets the maximum number of devices that can be registered by a user. A value of 0 disables device registration by users
-        (DocsDescription) sets the maximum number of devices that can be registered by a user. A value of 0 disables device registration by users
+        (Helptext) Sets the maximum number of devices that can be registered by a user. A value of 0 disables device registration by users
+        (DocsDescription) Sets the maximum number of devices that can be registered by a user. A value of 0 disables device registration by users
     .NOTES
         CAT
             Intune Standards
         TAG
-            "mediumimpact"
         ADDEDCOMPONENT
-            {"type":"number","name":"standards.intuneDeviceReg.max","label":"Maximum devices (Enter 2147483647 for unlimited.)"}
+            {"type":"number","name":"standards.intuneDeviceReg.max","label":"Maximum devices (Enter 2147483647 for unlimited.)","required":true}
         IMPACT
             Medium Impact
+        ADDEDDATE
+            2023-03-27
         POWERSHELLEQUIVALENT
             Update-MgBetaPolicyDeviceRegistrationPolicy
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/intune-standards#medium-impact
     #>
 
     param($Tenant, $Settings)

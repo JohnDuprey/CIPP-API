@@ -3,11 +3,11 @@ function Test-CIPPAccessPermissions {
     param (
         $TenantFilter,
         $APIName = 'Access Check',
-        $ExecutingUser
+        $Headers
     )
 
-    $User = $request.headers.'x-ms-client-principal-name'
-    Write-LogMessage -user $User -API $APINAME -message 'Started permissions check' -Sev 'Debug'
+    $User = $request.headers.'x-ms-client-principal'
+    Write-LogMessage -Headers $User -API $APINAME -message 'Started permissions check' -Sev 'Debug'
     $Messages = [System.Collections.Generic.List[string]]::new()
     $ErrorMessages = [System.Collections.Generic.List[string]]::new()
     $MissingPermissions = [System.Collections.Generic.List[string]]::new()
@@ -46,7 +46,7 @@ function Test-CIPPAccessPermissions {
                 }
             } catch {
                 $ErrorMessage = Get-CippException -Exception $_
-                Write-LogMessage -user $User -API $APINAME -tenant $tenant -message "Key vault exception: $($ErrorMessage.NormalizedError) " -Sev 'Error' -LogData $ErrorMessage
+                Write-LogMessage -Headers $User -API $APINAME -tenant $tenant -message "Key vault exception: $($ErrorMessage.NormalizedError) " -Sev 'Error' -LogData $ErrorMessage
             }
         } else {
             $Messages.Add('Your refresh token matches key vault.') | Out-Null
@@ -60,7 +60,7 @@ function Test-CIPPAccessPermissions {
                 Name        = ''
                 AuthMethods = @()
             }
-            Write-LogMessage -user $User -API $APINAME -tenant $tenant -message "Token exception: $($ErrorMessage.NormalizedError_) " -Sev 'Error' -LogData $ErrorMessage
+            Write-LogMessage -Headers $User -API $APINAME -tenant $tenant -message "Token exception: $($ErrorMessage.NormalizedError_) " -Sev 'Error' -LogData $ErrorMessage
             $Success = $false
         }
 
@@ -128,7 +128,7 @@ function Test-CIPPAccessPermissions {
             $Messages.Add('You have all the required permissions.') | Out-Null
         }
 
-        $LastUpdate = $GraphPermissions.Timestamp
+        $LastUpdate = [DateTime]::SpecifyKind($GraphPermissions.Timestamp.DateTime, [DateTimeKind]::Utc)
         $CpvTable = Get-CippTable -tablename 'cpvtenants'
         $CpvRefresh = Get-CippAzDataTableEntity @CpvTable -Filter "PartitionKey eq 'Tenant'"
         $TenantList = Get-Tenants -IncludeErrors | Where-Object { $_.customerId -ne $env:TenantID -and $_.Excluded -eq $false }
@@ -152,7 +152,7 @@ function Test-CIPPAccessPermissions {
         }
     } catch {
         $ErrorMessage = Get-CippException -Exception $_
-        Write-LogMessage -user $User -API $APINAME -message "Permissions check failed: $($ErrorMessage.NormalizedError) " -Sev 'Error' -LogData $ErrorMessage
+        Write-LogMessage -Headers $User -API $APINAME -message "Permissions check failed: $($ErrorMessage.NormalizedError) " -Sev 'Error' -LogData $ErrorMessage
         $ErrorMessages.Add("We could not connect to the API to retrieve the permissions. There might be a problem with the secure application model configuration. The returned error is: $($ErrorMessage.NormalizedError)") | Out-Null
         $Success = $false
     }
@@ -182,7 +182,9 @@ function Test-CIPPAccessPermissions {
             Data         = [string](ConvertTo-Json -InputObject $AccessCheck -Depth 10 -Compress)
         }
     }
-    Add-CIPPAzDataTableEntity @Table -Entity $Data -Force
+    try {
+        Add-CIPPAzDataTableEntity @Table -Entity $Data -Force
+    } catch {}
 
     return $AccessCheck
 }

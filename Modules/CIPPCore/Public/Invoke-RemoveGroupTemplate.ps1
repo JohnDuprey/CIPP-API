@@ -10,32 +10,34 @@ Function Invoke-RemoveGroupTemplate {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    $User = $request.headers.'x-ms-client-principal'
-    Write-LogMessage -user $User -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    $Headers = $Request.Headers
+    Write-LogMessage -Headers $Headers -API $APIName -message 'Accessed this API' -Sev 'Debug'
 
-    $ID = $request.query.id
+    $ID = $request.Query.ID ?? $Request.Body.ID
     try {
         $Table = Get-CippTable -tablename 'templates'
-        Write-Host $id
+        Write-Host $ID
 
-        $Filter = "PartitionKey eq 'GroupTemplate' and RowKey eq '$id'"
+        $Filter = "PartitionKey eq 'GroupTemplate' and RowKey eq '$ID'"
         Write-Host $Filter
         $ClearRow = Get-CIPPAzDataTableEntity @Table -Filter $Filter -Property PartitionKey, RowKey
-        Remove-AzDataTableEntity -Force @Table -Entity $clearRow
-        Write-LogMessage -user $User -API $APINAME -message "Removed Intune Template with ID $ID." -Sev 'Info'
-        $body = [pscustomobject]@{'Results' = 'Successfully removed Template' }
+        Remove-AzDataTableEntity -Force @Table -Entity $ClearRow
+        $Result = "Removed Group Template with ID $ID"
+        Write-LogMessage -Headers $Headers -API $APIName -message $Result -Sev 'Info'
+        $StatusCode = [HttpStatusCode]::OK
     } catch {
         $ErrorMessage = Get-CippException -Exception $_
-        Write-LogMessage -user $User -API $APINAME -message "Failed to remove intune template $ID. $($ErrorMessage.NormalizedError)" -Sev 'Error' -LogData $ErrorMessage
-        $body = [pscustomobject]@{'Results' = "Failed to remove template: $($ErrorMessage.NormalizedError)" }
+        $Result = "Failed to remove group template $($ID): $($ErrorMessage.NormalizedError)"
+        Write-LogMessage -Headers $Headers -API $APIName -message $Result -Sev 'Error' -LogData $ErrorMessage
+        $StatusCode = [HttpStatusCode]::InternalServerError
     }
 
 
     # Associate values to output bindings by calling 'Push-OutputBinding'.
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-            StatusCode = [HttpStatusCode]::OK
-            Body       = $body
+            StatusCode = $StatusCode
+            Body       = @{'Results' = $Result }
         })
 
 

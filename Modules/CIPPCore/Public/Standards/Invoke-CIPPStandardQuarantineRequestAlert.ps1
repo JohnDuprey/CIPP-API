@@ -13,18 +13,19 @@ function Invoke-CIPPStandardQuarantineRequestAlert {
         CAT
             Defender Standards
         TAG
-            "lowimpact"
         ADDEDCOMPONENT
-            {"type":"input","name":"standards.QuarantineRequestAlert.NotifyUser","label":"E-mail to receive the alert"}
+            {"type":"textField","name":"standards.QuarantineRequestAlert.NotifyUser","label":"E-mail to receive the alert"}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-07-15
         POWERSHELLEQUIVALENT
             New-ProtectionAlert and Set-ProtectionAlert
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/defender-standards#low-impact
     #>
 
     param ($Tenant, $Settings)
@@ -52,9 +53,7 @@ function Invoke-CIPPStandardQuarantineRequestAlert {
 
             if ($CurrentState.Name -eq $PolicyName) {
                 try {
-                    $cmdparams += @{
-                        'Identity' = $PolicyName
-                    }
+                    $cmdparams['Identity'] = $PolicyName
                     New-ExoRequest -TenantId $Tenant -cmdlet 'Set-ProtectionAlert' -Compliance -cmdparams $cmdparams -UseSystemMailbox $true
                     Write-LogMessage -API 'Standards' -Tenant $Tenant -Message 'Successfully configured Quarantine Request Alert' -sev Info
                 } catch {
@@ -63,10 +62,9 @@ function Invoke-CIPPStandardQuarantineRequestAlert {
                 }
             } else {
                 try {
-                    $cmdparams += @{
-                        'Name'       = $PolicyName
-                        'ThreatType' = 'Activity'
-                    }
+                    $cmdparams['name'] = $PolicyName
+                    $cmdparams['ThreatType'] = 'Activity'
+
                     New-ExoRequest -TenantId $Tenant -cmdlet 'New-ProtectionAlert' -Compliance -cmdparams $cmdparams -UseSystemMailbox $true
                     Write-LogMessage -API 'Standards' -Tenant $Tenant -Message 'Successfully created Quarantine Request Alert' -sev Info
                 } catch {

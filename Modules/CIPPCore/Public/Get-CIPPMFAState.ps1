@@ -4,7 +4,7 @@ function Get-CIPPMFAState {
     param (
         $TenantFilter,
         $APIName = 'Get MFA Status',
-        $ExecutingUser
+        $Headers
     )
     $PerUserMFAState = Get-CIPPPerUserMFA -TenantFilter $TenantFilter -AllUsers $true
     $users = foreach ($user in (New-GraphGetRequest -uri 'https://graph.microsoft.com/beta/users?$top=999&$select=id,UserPrincipalName,DisplayName,accountEnabled,assignedLicenses' -tenantid $TenantFilter)) {
@@ -25,7 +25,7 @@ function Get-CIPPMFAState {
     $CAState = [System.Collections.Generic.List[object]]::new()
 
     Try {
-        $MFARegistration = (New-GraphGetRequest -uri 'https://graph.microsoft.com/beta/reports/authenticationMethods/userRegistrationDetails' -tenantid $TenantFilter)
+        $MFARegistration = (New-GraphGetRequest -uri 'https://graph.microsoft.com/beta/reports/authenticationMethods/userRegistrationDetails' -tenantid $TenantFilter -asapp $true)
     } catch {
         $CAState.Add('Not Licensed for Conditional Access') | Out-Null
         $MFARegistration = $null

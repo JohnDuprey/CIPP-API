@@ -10,8 +10,8 @@ Function Invoke-ListIntuneTemplates {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Accessed this API' -Sev 'Debug'
 
     $Table = Get-CippTable -tablename 'templates'
     $Imported = Get-CIPPAzDataTableEntity @Table -Filter "PartitionKey eq 'settings'"
@@ -34,20 +34,30 @@ Function Invoke-ListIntuneTemplates {
     #List new policies
     $Table = Get-CippTable -tablename 'templates'
     $Filter = "PartitionKey eq 'IntuneTemplate'"
-    $Templates = (Get-CIPPAzDataTableEntity @Table -Filter $Filter).JSON | ConvertFrom-Json
+    $RawTemplates = (Get-CIPPAzDataTableEntity @Table -Filter $Filter)
     if ($Request.query.View) {
-        $Templates = $Templates | ForEach-Object {
-            $data = $_.RAWJson | ConvertFrom-Json -Depth 100
-            $data | Add-Member -NotePropertyName 'displayName' -NotePropertyValue $_.Displayname -Force
-            $data | Add-Member -NotePropertyName 'description' -NotePropertyValue $_.Description -Force
-            $data | Add-Member -NotePropertyName 'Type' -NotePropertyValue $_.Type -Force
-            $data | Add-Member -NotePropertyName 'GUID' -NotePropertyValue $_.RowKey -Force
-            $data
+        $Templates = $RawTemplates | ForEach-Object {
+            try {
+                $JSONData = $_.JSON | ConvertFrom-Json -Depth 100 -ErrorAction SilentlyContinue
+                $data = $JSONData.RAWJson | ConvertFrom-Json -Depth 100 -ErrorAction SilentlyContinue
+                $data | Add-Member -NotePropertyName 'displayName' -NotePropertyValue $JSONData.Displayname -Force
+                $data | Add-Member -NotePropertyName 'description' -NotePropertyValue $JSONData.Description -Force
+                $data | Add-Member -NotePropertyName 'Type' -NotePropertyValue $JSONData.Type -Force
+                $data | Add-Member -NotePropertyName 'GUID' -NotePropertyValue $_.RowKey -Force
+                $data
+            } catch {
+
+            }
+
         } | Sort-Object -Property displayName
+    } else {
+        $Templates = $RawTemplates.JSON | ForEach-Object { try { ConvertFrom-Json -InputObject $_ -Depth 100 -ErrorAction SilentlyContinue } catch {} }
     }
 
     if ($Request.query.ID) { $Templates = $Templates | Where-Object -Property guid -EQ $Request.query.id }
 
+    # Sort all output regardless of view condition
+    $Templates = $Templates | Sort-Object -Property displayName
 
     # Associate values to output bindings by calling 'Push-OutputBinding'.
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{

@@ -9,10 +9,10 @@ function Invoke-ListGraphRequest {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
+    $APIName = $Request.Params.CIPPEndpoint
 
     $Message = 'Accessed this API | Endpoint: {0}' -f $Request.Query.Endpoint
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message $Message -Sev 'Debug'
+    Write-LogMessage -headers $Request.Headers -API $APINAME -message $Message -Sev 'Debug'
 
     $CippLink = ([System.Uri]$TriggerMetadata.Headers.Referer).PathAndQuery
 
@@ -122,7 +122,9 @@ function Invoke-ListGraphRequest {
         $Results = Get-GraphRequestList @GraphRequestParams
         if ($Results.nextLink) {
             Write-Host "NextLink: $($Results.nextLink | Select-Object -Last 1)"
-            $Metadata['nextLink'] = $Results.nextLink | Select-Object -Last 1
+            if ($Request.Query.TenantFilter -ne 'AllTenants') {
+                $Metadata['nextLink'] = $Results.nextLink | Select-Object -Last 1
+            }
             #Results is an array of objects, so we need to remove the last object before returning
             $Results = $Results | Select-Object -First ($Results.Count - 1)
         }
@@ -137,6 +139,11 @@ function Invoke-ListGraphRequest {
                 $Results = @()
             }
         }
+
+        if ($Request.Headers.'x-ms-coldstart' -eq 1) {
+            $Metadata.ColdStart = $true
+        }
+
         $GraphRequestData = [PSCustomObject]@{
             Results  = @($Results)
             Metadata = $Metadata

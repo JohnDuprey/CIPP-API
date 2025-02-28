@@ -13,17 +13,19 @@ function Invoke-CIPPStandardSendFromAlias {
         CAT
             Exchange Standards
         TAG
-            "mediumimpact"
         ADDEDCOMPONENT
         IMPACT
             Medium Impact
+        ADDEDDATE
+            2022-05-25
         POWERSHELLEQUIVALENT
             Set-Mailbox
         RECOMMENDEDBY
+            "CIPP"
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/exchange-standards#medium-impact
     #>
 
     param($Tenant, $Settings)

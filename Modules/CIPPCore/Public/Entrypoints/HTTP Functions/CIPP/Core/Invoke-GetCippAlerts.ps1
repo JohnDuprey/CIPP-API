@@ -23,7 +23,7 @@ Function Invoke-GetCippAlerts {
         $Alerts.Add(@{
                 title = 'CIPP Frontend Out of Date'
                 Alert = 'Your CIPP Frontend is out of date. Please update to the latest version. Find more on the following '
-                link  = 'https://docs.cipp.app/setup/installation/updating'
+                link  = 'https://docs.cipp.app/setup/self-hosting-guide/updating'
                 type  = 'warning'
             })
         Write-LogMessage -message 'Your CIPP Frontend is out of date. Please update to the latest version' -API 'Updates' -tenant 'All Tenants' -sev Alert
@@ -33,7 +33,7 @@ Function Invoke-GetCippAlerts {
         $Alerts.Add(@{
                 title = 'CIPP API Out of Date'
                 Alert = 'Your CIPP API is out of date. Please update to the latest version. Find more on the following'
-                link  = 'https://docs.cipp.app/setup/installation/updating'
+                link  = 'https://docs.cipp.app/setup/self-hosting-guide/updating'
                 type  = 'warning'
             })
         Write-LogMessage -message 'Your CIPP API is out of date. Please update to the latest version' -API 'Updates' -tenant 'All Tenants' -sev Alert
@@ -67,8 +67,8 @@ Function Invoke-GetCippAlerts {
     }
     if ($Rows) { $Rows | ForEach-Object { $Alerts.Add($_) } }
     $Alerts = @($Alerts)
-    $APIName = $TriggerMetadata.FunctionName
-    Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message 'Accessed this API' -Sev 'Debug'
+    $APIName = $Request.Params.CIPPEndpoint
+    Write-LogMessage -headers $Request.Headers -API $APINAME -message 'Accessed this API' -Sev 'Debug'
 
     # Write to the Azure Functions log stream.
 

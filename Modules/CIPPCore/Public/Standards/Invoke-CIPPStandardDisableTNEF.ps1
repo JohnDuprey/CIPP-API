@@ -13,17 +13,19 @@ function Invoke-CIPPStandardDisableTNEF {
         CAT
             Exchange Standards
         TAG
-            "lowimpact"
         ADDEDCOMPONENT
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-04-26
         POWERSHELLEQUIVALENT
             Set-RemoteDomain -Identity 'Default' -TNEFEnabled \$false
         RECOMMENDEDBY
+            "CIPP"
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/exchange-standards#low-impact
     #>
 
     param ($Tenant, $Settings)

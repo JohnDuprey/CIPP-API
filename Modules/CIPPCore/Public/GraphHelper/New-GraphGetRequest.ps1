@@ -8,16 +8,21 @@ function New-GraphGetRequest {
         [string]$uri,
         [string]$tenantid,
         [string]$scope,
-        [bool]$AsApp,
+        $AsApp,
         [bool]$noPagination,
-        [bool]$NoAuthCheck,
+        $NoAuthCheck = $false,
         [bool]$skipTokenCache,
         $Caller,
         [switch]$ComplexFilter,
         [switch]$CountOnly,
         [switch]$IncludeResponseHeaders
     )
-    $IsAuthorised = Get-AuthorisedRequest -Uri $uri -TenantID $tenantid
+
+    if ($NoAuthCheck -eq $false) {
+        $IsAuthorised = Get-AuthorisedRequest -Uri $uri -TenantID $tenantid
+    } else {
+        $IsAuthorised = $true
+    }
 
     if ($NoAuthCheck -eq $true -or $IsAuthorised) {
         if ($scope -eq 'ExchangeOnline') {

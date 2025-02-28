@@ -10,21 +10,27 @@ Function Invoke-ExecSetMailboxLocale {
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
 
-    $APIName = $TriggerMetadata.FunctionName
-    $Tenant = $Request.body.TenantFilter
-    $User = $request.headers.'x-ms-client-principal'
-    Write-LogMessage -user $User -API $APINAME -message 'Accessed this API' -Sev 'Debug'
-
-    # Write to the Azure Functions log stream.
-    Write-Host 'PowerShell HTTP trigger function processed a request.'
-
+    $APIName = $Request.Params.CIPPEndpoint
+    $Headers = $Request.Headers
+    Write-LogMessage -Headers $User -API $APIName -message 'Accessed this API' -Sev 'Debug'
 
     # Interact with query parameters or the body of the request.
-    $Results = Set-CippMailboxLocale -username $Request.Body.user -locale $Request.body.input -tenantFilter $Tenant -APIName $APINAME -ExecutingUser $User
+    $Tenant = $Request.Body.tenantFilter
+    $User = $Request.Body.user
+    $Locale = $Request.Body.locale
+
+    try {
+        $Result = Set-CippMailboxLocale -username $User -locale $Locale -tenantFilter $Tenant -APIName $APIName -Headers $Headers
+        $StatusCode = [HttpStatusCode]::OK
+    } catch {
+        $Result = "$($_.Exception.Message)"
+        $StatusCode = [HttpStatusCode]::InternalServerError
+    }
+
     # Associate values to output bindings by calling 'Push-OutputBinding'.
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-            StatusCode = [HttpStatusCode]::OK
-            Body       = @{ Results = $Results }
+            StatusCode = $StatusCode
+            Body       = @{ Results = $Result }
         })
 
 }

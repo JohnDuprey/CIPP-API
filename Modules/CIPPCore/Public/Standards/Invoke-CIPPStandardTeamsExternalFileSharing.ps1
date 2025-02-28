@@ -13,15 +13,16 @@ Function Invoke-CIPPStandardTeamsExternalFileSharing {
         CAT
             Teams Standards
         TAG
-            "lowimpact"
         ADDEDCOMPONENT
-            {"type":"boolean","name":"standards.TeamsExternalFileSharing.AllowGoogleDrive","label":"Allow Google Drive"}
-            {"type":"boolean","name":"standards.TeamsExternalFileSharing.AllowShareFile","label":"Allow ShareFile"}
-            {"type":"boolean","name":"standards.TeamsExternalFileSharing.AllowBox","label":"Allow Box"}
-            {"type":"boolean","name":"standards.TeamsExternalFileSharing.AllowDropBox","label":"Allow Dropbox"}
-            {"type":"boolean","name":"standards.TeamsExternalFileSharing.AllowEgnyte","label":"Allow Egnyte"}
+            {"type":"switch","name":"standards.TeamsExternalFileSharing.AllowGoogleDrive","label":"Allow Google Drive"}
+            {"type":"switch","name":"standards.TeamsExternalFileSharing.AllowShareFile","label":"Allow ShareFile"}
+            {"type":"switch","name":"standards.TeamsExternalFileSharing.AllowBox","label":"Allow Box"}
+            {"type":"switch","name":"standards.TeamsExternalFileSharing.AllowDropBox","label":"Allow Dropbox"}
+            {"type":"switch","name":"standards.TeamsExternalFileSharing.AllowEgnyte","label":"Allow Egnyte"}
         IMPACT
             Low Impact
+        ADDEDDATE
+            2024-07-28
         POWERSHELLEQUIVALENT
             Set-CsTeamsClientConfiguration -AllowGoogleDrive \$false -AllowShareFile \$false -AllowBox \$false -AllowDropBox \$false -AllowEgnyte \$false
         RECOMMENDEDBY
@@ -29,7 +30,7 @@ Function Invoke-CIPPStandardTeamsExternalFileSharing {
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/teams-standards#low-impact
     #>
 
     param($Tenant, $Settings)

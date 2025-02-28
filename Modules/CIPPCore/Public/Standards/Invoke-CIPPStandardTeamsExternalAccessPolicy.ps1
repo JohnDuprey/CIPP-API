@@ -13,20 +13,21 @@ Function Invoke-CIPPStandardTeamsExternalAccessPolicy {
         CAT
             Teams Standards
         TAG
-            "mediumimpact"
         ADDEDCOMPONENT
-            {"type":"boolean","name":"standards.TeamsExternalAccessPolicy.EnableFederationAccess","label":"Allow communication from trusted organizations"}
-            {"type":"boolean","name":"standards.TeamsExternalAccessPolicy.EnablePublicCloudAccess","label":"Allow user to communicate with Skype users"}
-            {"type":"boolean","name":"standards.TeamsExternalAccessPolicy.EnableTeamsConsumerAccess","label":"Allow communication with unmanaged Teams accounts"}
+            {"type":"switch","name":"standards.TeamsExternalAccessPolicy.EnableFederationAccess","label":"Allow communication from trusted organizations"}
+            {"type":"switch","name":"standards.TeamsExternalAccessPolicy.EnablePublicCloudAccess","label":"Allow user to communicate with Skype users"}
+            {"type":"switch","name":"standards.TeamsExternalAccessPolicy.EnableTeamsConsumerAccess","label":"Allow communication with unmanaged Teams accounts"}
         IMPACT
             Medium Impact
+        ADDEDDATE
+            2024-07-30
         POWERSHELLEQUIVALENT
             Set-CsExternalAccessPolicy
         RECOMMENDEDBY
         UPDATECOMMENTBLOCK
             Run the Tools\Update-StandardsComments.ps1 script to update this comment block
     .LINK
-        https://docs.cipp.app/user-documentation/tenant/standards/edit-standards
+        https://docs.cipp.app/user-documentation/tenant/standards/list-standards/teams-standards#medium-impact
     #>
 
     param($Tenant, $Settings)
