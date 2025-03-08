@@ -44,13 +44,15 @@ Function Invoke-ListScheduledItems {
     }
     $Tasks = Get-CIPPAzDataTableEntity @Table -Filter $Filter | Where-Object { $_.Hidden -ne $HiddenTasks }
     if ($Type) {
-        $Tasks.Command
         $Tasks = $Tasks | Where-Object { $_.command -eq $Type }
     }
 
     $AllowedTenants = Test-CIPPAccess -Request $Request -TenantList
+
     if ($AllowedTenants -notcontains 'AllTenants') {
-        $Tasks = $Tasks | Where-Object -Property TenantId -In $AllowedTenants
+        $TenantList = Get-Tenants -IncludeErrors | Select-Object customerId, defaultDomainName
+        $AllowedTenantDomains = $TenantList | Where-Object -Property customerId -In $AllowedTenants | Select-Object -ExpandProperty defaultDomainName
+        $Tasks = $Tasks | Where-Object -Property Tenant -In $AllowedTenantDomains
     }
     $ScheduledTasks = foreach ($Task in $tasks) {
         if ($Task.Parameters) {
@@ -58,13 +60,16 @@ Function Invoke-ListScheduledItems {
         } else {
             $Task | Add-Member -NotePropertyName Parameters -NotePropertyValue @{}
         }
+        if ($Task.Recurrence -eq 0 -or [string]::IsNullOrEmpty($Task.Recurrence)) {
+            $Task.Recurrence = 'Once'
+        }
         $Task
     }
 
     # Associate values to output bindings by calling 'Push-OutputBinding'.
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
             StatusCode = [HttpStatusCode]::OK
-            Body       = @($ScheduledTasks)
+            Body       = @($ScheduledTasks | Sort-Object -Property ExecutedTime -Descending)
         })
 
 }
