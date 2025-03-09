@@ -44,6 +44,12 @@ function Invoke-ExecCustomRole {
                     }
                     Add-CIPPAzDataTableEntity @AccessRoleGroupTable -Entity $RoleGroup -Force | Out-Null
                     $Results.Add("Security group '$($Request.Body.EntraGroup.label)' assigned to the '$($Request.Body.RoleName)' role.")
+                } else {
+                    $AccessRoleGroup = Get-CIPPAzDataTableEntity @AccessRoleGroupTable -Filter "RowKey eq '$($Request.Body.RoleName)'"
+                    if ($AccessRoleGroup) {
+                        Remove-AzDataTableEntity -Force @AccessRoleGroupTable -Entity $AccessRoleGroup
+                        $Results.Add("Security group '$($AccessRoleGroup.GroupName)' removed from the '$($Request.Body.RoleName)' role.")
+                    }
                 }
                 $Body = @{Results = $Results }
             } catch {
