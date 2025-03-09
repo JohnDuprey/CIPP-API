@@ -120,7 +120,10 @@ function Test-CIPPAccess {
     }
 
     # Check custom role permissions for limitations on api calls or tenants
-    if (($CustomRoles | Measure-Object).Count -gt 0) {
+    if ($null -eq $BaseRole -and ($CustomRoles | Measure-Object).Count -eq 0) {
+        throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required permission'
+    }
+    elseif (($CustomRoles | Measure-Object).Count -gt 0) {
         $Tenants = Get-Tenants -IncludeErrors
         $PermissionsFound = $false
         $PermissionSet = foreach ($CustomRole in $CustomRoles) {

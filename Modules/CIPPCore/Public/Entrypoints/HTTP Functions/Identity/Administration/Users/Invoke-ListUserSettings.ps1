@@ -5,7 +5,7 @@ function Invoke-ListUserSettings {
     .FUNCTIONALITY
         Entrypoint
     .ROLE
-        Identity.User.Read
+        CIPP.Core.Read
     #>
     param($Request, $TriggerMetadata)
 

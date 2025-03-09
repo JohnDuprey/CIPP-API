@@ -30,8 +30,7 @@ function Test-CIPPAccessUserRole {
             $uri = "https://graph.microsoft.com/beta/users/$($User.userDetails)/transitiveMemberOf"
             $Memberships = New-GraphGetRequest -uri $uri -NoAuthCheck $true | Where-Object { $_.'@odata.type' -eq '#microsoft.graph.group' }
         } catch {
-            Write-Error $_.Exception.Message
-            throw 'User not found'
+            return $User
         }
 
         $AccessGroupsTable = Get-CippTable -TableName AccessRoleGroups
