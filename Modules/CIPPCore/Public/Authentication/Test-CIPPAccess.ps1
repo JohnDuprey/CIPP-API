@@ -15,6 +15,10 @@ function Test-CIPPAccess {
     # Check help for role
     $APIRole = $Help.Role
 
+    if ($APIRole -eq 'Public') {
+        return $true
+    }
+
     # Get default roles from config
     $CIPPCoreModuleRoot = Get-Module -Name CIPPCore | Select-Object -ExpandProperty ModuleBase
     $CIPPRoot = (Get-Item $CIPPCoreModuleRoot).Parent.Parent
