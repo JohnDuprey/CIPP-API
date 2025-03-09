@@ -21,7 +21,7 @@ function Test-CIPPAccessUserRole {
     )
     $Roles = @()
     $Table = Get-CippTable -TableName cacheAccessUserRoles
-    $Filter = "PartitionKey eq 'AccessRole' and RowKey eq '$($User.userDetails)' and Timestamp ge datetime'$((Get-Date).AddMinutes(-30).ToString('yyyy-MM-ddTHH:mm:ss'))'"
+    $Filter = "PartitionKey eq 'AccessRole' and RowKey eq '$($User.userDetails)' and Timestamp ge datetime'$((Get-Date).AddMinutes(-15).ToString('yyyy-MM-ddTHH:mm:ss'))'"
     $UserRole = Get-CIPPAzDataTableEntity @Table -Filter $Filter
     if ($UserRole) {
         $Roles = $UserRole.Role | ConvertFrom-Json
@@ -34,8 +34,8 @@ function Test-CIPPAccessUserRole {
             throw 'User not found'
         }
 
-        $Table = Get-CippTable -TableName AccessRoleGroups
-        $AccessGroups = Get-CIPPAzDataTableEntity @Table
+        $AccessGroupsTable = Get-CippTable -TableName AccessRoleGroups
+        $AccessGroups = Get-CIPPAzDataTableEntity @AccessGroupsTable
 
         $Roles = foreach ($AccessGroup in $AccessGroups) {
             if ($Memberships.id -contains $AccessGroup.GroupId) {
