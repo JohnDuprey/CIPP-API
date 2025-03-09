@@ -122,7 +122,7 @@ function Test-CIPPAccess {
     # Check custom role permissions for limitations on api calls or tenants
     if ($null -eq $BaseRole -and ($CustomRoles | Measure-Object).Count -eq 0) {
         throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required permission'
-    } elseif ($BaseRole -notin @('admin', 'superadmin') -and ($CustomRoles | Measure-Object).Count -gt 0) {
+    } elseif (($CustomRoles | Measure-Object).Count -gt 0) {
         $Tenants = Get-Tenants -IncludeErrors
         $PermissionsFound = $false
         $PermissionSet = foreach ($CustomRole in $CustomRoles) {
@@ -184,15 +184,18 @@ function Test-CIPPAccess {
                     }
                 }
             }
-            if (!$APIAllowed) {
-                throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
-            }
-            if (!$TenantAllowed -and $AnyTenantAllowedFunctions -notcontains $Request.Params.CIPPEndpoint) {
-                throw 'Access to this tenant is not allowed'
+            if ($BaseRole -notin @('admin', 'superadmin')) {
+                if (!$APIAllowed) {
+                    throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
+                }
+                if (!$TenantAllowed -and $AnyTenantAllowedFunctions -notcontains $Request.Params.CIPPEndpoint) {
+                    throw 'Access to this tenant is not allowed'
+                } else {
+                    return $true
+                }
             } else {
                 return $true
             }
-
         } else {
             # No permissions found for any roles
             if ($TenantList.IsPresent) {
