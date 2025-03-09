@@ -19,6 +19,7 @@ function Invoke-ListCustomRole {
     $AccessRoleGroupTable = Get-CippTable -tablename 'AccessRoleGroups'
     $RoleGroups = Get-CIPPAzDataTableEntity @AccessRoleGroupTable
 
+    $TenantList = Get-Tenants -IncludeErrors
 
     $RoleList = [System.Collections.Generic.List[pscustomobject]]::new()
     foreach ($Role in $DefaultRoles) {
@@ -28,8 +29,8 @@ function Invoke-ListCustomRole {
                 RoleName       = $Role
                 Type           = 'Built-In'
                 Permissions    = ''
-                AllowedTenants = ''
-                BlockedTenants = ''
+                AllowedTenants = @('AllTenants')
+                BlockedTenants = @()
                 EntraGroup     = $RoleGroup.GroupName ?? $null
                 EntraGroupId   = $RoleGroup.GroupId ?? $null
             })
@@ -37,6 +38,7 @@ function Invoke-ListCustomRole {
     foreach ($Role in $CustomRoles) {
         $Role | Add-Member -NotePropertyName RoleName -NotePropertyValue $Role.RowKey -Force
         $Role | Add-Member -NotePropertyName Type -NotePropertyValue 'Custom' -Force
+
         if ($Role.Permissions) {
             try {
                 $Role.Permissions = $Role.Permissions | ConvertFrom-Json
@@ -46,18 +48,28 @@ function Invoke-ListCustomRole {
         }
         if ($Role.AllowedTenants) {
             try {
-                $Role.AllowedTenants = @($Role.AllowedTenants | ConvertFrom-Json)
+                $AllowedTenants = $Role.AllowedTenants | ConvertFrom-Json -ErrorAction Stop | ForEach-Object {
+                    $TenantId = $_
+                    $TenantList | Where-Object { $_.customerId -eq $TenantId } | Select-Object -ExpandProperty defaultDomainName
+                }
+                $AllowedTenants = $AllowedTenants ?? @('AllTenants')
+                $Role.AllowedTenants = @($AllowedTenants)
             } catch {
-                $Role.AllowedTenants = ''
+                $Role.AllowedTenants = @('AllTenants')
             }
         } else {
             $Role | Add-Member -NotePropertyName AllowedTenants -NotePropertyValue @() -Force
         }
         if ($Role.BlockedTenants) {
             try {
-                $Role.BlockedTenants = @($Role.BlockedTenants | ConvertFrom-Json)
+                $BlockedTenants = $Role.BlockedTenants | ConvertFrom-Json -ErrorAction Stop | ForEach-Object {
+                    $TenantId = $_
+                    $TenantList | Where-Object { $_.customerId -eq $TenantId } | Select-Object -ExpandProperty defaultDomainName
+                }
+                $BlockedTenants = $BlockedTenants ?? @()
+                $Role.BlockedTenants = @($BlockedTenants)
             } catch {
-                $Role.BlockedTenants = ''
+                $Role.BlockedTenants = @()
             }
         } else {
             $Role | Add-Member -NotePropertyName BlockedTenants -NotePropertyValue @() -Force
@@ -75,6 +87,6 @@ function Invoke-ListCustomRole {
 
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
             StatusCode = [HttpStatusCode]::OK
-            Body       = $Body
+            Body       = ConvertTo-Json -InputObject $Body -Depth 5
         })
 }
