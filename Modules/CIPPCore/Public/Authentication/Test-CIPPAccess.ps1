@@ -123,68 +123,71 @@ function Test-CIPPAccess {
     if ($null -eq $BaseRole -and ($CustomRoles | Measure-Object).Count -eq 0) {
         throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required permission'
     } elseif (($CustomRoles | Measure-Object).Count -gt 0) {
-        $Tenants = Get-Tenants -IncludeErrors
-        $PermissionsFound = $false
-        $PermissionSet = foreach ($CustomRole in $CustomRoles) {
-            try {
-                Get-CIPPRolePermissions -Role $CustomRole
-                $PermissionsFound = $true
-            } catch {
-                Write-Information $_.Exception.Message
-                continue
-            }
-        }
-        if ($PermissionsFound) {
-            if ($TenantList.IsPresent) {
-                $LimitedTenantList = foreach ($Permission in $PermissionSet) {
-                    if ((($Permission.AllowedTenants | Measure-Object).Count -eq 0 -or $Permission.AllowedTenants -contains 'AllTenants') -and (($Permission.BlockedTenants | Measure-Object).Count -eq 0)) {
-                        @('AllTenants')
-                    } else {
-                        if ($Permission.AllowedTenants -contains 'AllTenants') {
-                            $Permission.AllowedTenants = $Tenants.customerId
-                        }
-                        $Permission.AllowedTenants | Where-Object { $Permission.BlockedTenants -notcontains $_ }
-                    }
+        if (@('admin', 'superadmin') -contains $BaseRole.Name) {
+            return $true
+        } else {
+            $Tenants = Get-Tenants -IncludeErrors
+            $PermissionsFound = $false
+            $PermissionSet = foreach ($CustomRole in $CustomRoles) {
+                try {
+                    Get-CIPPRolePermissions -Role $CustomRole
+                    $PermissionsFound = $true
+                } catch {
+                    Write-Information $_.Exception.Message
+                    continue
                 }
-                return $LimitedTenantList
             }
-
-            $TenantAllowed = $false
-            $APIAllowed = $false
-            foreach ($Role in $PermissionSet) {
-                foreach ($Perm in $Role.Permissions) {
-                    if ($Perm -match $APIRole) {
-                        $APIAllowed = $true
-                        break
-                    }
-                }
-
-                if ($APIAllowed) {
-                    $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $env:TenantID
-                    # Check tenant level access
-                    if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
-                        $TenantAllowed = $true
-                    } elseif ($TenantFilter -eq 'AllTenants') {
-                        $TenantAllowed = $false
-                    } else {
-                        $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
-                        if ($Role.AllowedTenants -contains 'AllTenants') {
-                            $AllowedTenants = $Tenants.customerId
+            if ($PermissionsFound) {
+                if ($TenantList.IsPresent) {
+                    $LimitedTenantList = foreach ($Permission in $PermissionSet) {
+                        if ((($Permission.AllowedTenants | Measure-Object).Count -eq 0 -or $Permission.AllowedTenants -contains 'AllTenants') -and (($Permission.BlockedTenants | Measure-Object).Count -eq 0)) {
+                            @('AllTenants')
                         } else {
-                            $AllowedTenants = $Role.AllowedTenants
+                            if ($Permission.AllowedTenants -contains 'AllTenants') {
+                                $Permission.AllowedTenants = $Tenants.customerId
+                            }
+                            $Permission.AllowedTenants | Where-Object { $Permission.BlockedTenants -notcontains $_ }
                         }
-                        if ($Tenant) {
-                            $TenantAllowed = $AllowedTenants -contains $Tenant -and $Role.BlockedTenants -notcontains $Tenant
-                            if (!$TenantAllowed) { continue }
+                    }
+                    return $LimitedTenantList
+                }
+
+                $TenantAllowed = $false
+                $APIAllowed = $false
+                foreach ($Role in $PermissionSet) {
+                    foreach ($Perm in $Role.Permissions) {
+                        if ($Perm -match $APIRole) {
+                            $APIAllowed = $true
                             break
-                        } else {
+                        }
+                    }
+
+                    if ($APIAllowed) {
+                        $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $env:TenantID
+                        # Check tenant level access
+                        if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
                             $TenantAllowed = $true
-                            break
+                        } elseif ($TenantFilter -eq 'AllTenants') {
+                            $TenantAllowed = $false
+                        } else {
+                            $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
+                            if ($Role.AllowedTenants -contains 'AllTenants') {
+                                $AllowedTenants = $Tenants.customerId
+                            } else {
+                                $AllowedTenants = $Role.AllowedTenants
+                            }
+                            if ($Tenant) {
+                                $TenantAllowed = $AllowedTenants -contains $Tenant -and $Role.BlockedTenants -notcontains $Tenant
+                                if (!$TenantAllowed) { continue }
+                                break
+                            } else {
+                                $TenantAllowed = $true
+                                break
+                            }
                         }
                     }
                 }
-            }
-            if ($BaseRole -notin @('admin', 'superadmin')) {
+
                 if (!$APIAllowed) {
                     throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
                 }
@@ -194,14 +197,12 @@ function Test-CIPPAccess {
                     return $true
                 }
             } else {
+                # No permissions found for any roles
+                if ($TenantList.IsPresent) {
+                    return @('AllTenants')
+                }
                 return $true
             }
-        } else {
-            # No permissions found for any roles
-            if ($TenantList.IsPresent) {
-                return @('AllTenants')
-            }
-            return $true
         }
     } else {
         return $true
