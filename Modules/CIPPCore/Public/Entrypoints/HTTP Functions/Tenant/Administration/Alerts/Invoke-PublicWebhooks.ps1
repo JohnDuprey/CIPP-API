@@ -33,7 +33,7 @@ function Invoke-PublicWebhooks {
         Write-Host 'Validation token received - query validationCode'
         $body = $request.query.validationCode
         $StatusCode = [HttpStatusCode]::OK
-    } elseif ($Request.Query.CIPPID -in $Webhooks.RowKey) {
+    } elseif ($Request.Query.CIPPID -and $Request.Query.CIPPID -in $Webhooks.RowKey) {
         Write-Host 'Found matching CIPPID'
         $url = ($request.headers.'x-ms-original-url').split('/API') | Select-Object -First 1
         $Webhookinfo = $Webhooks | Where-Object -Property RowKey -EQ $Request.query.CIPPID
