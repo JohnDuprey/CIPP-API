@@ -39,15 +39,28 @@ function Receive-CippHttpTrigger {
     # Convert the request to a PSCustomObject because the httpContext is case sensitive since 7.3
     $Request = $Request | ConvertTo-Json -Depth 100 | ConvertFrom-Json
     Set-Location (Get-Item $PSScriptRoot).Parent.Parent.FullName
-    $FunctionName = 'Invoke-{0}' -f $Request.Params.CIPPEndpoint
-    Write-Information "Function: $($Request.Params.CIPPEndpoint)"
+
+    if ($TriggerMetadata.FunctionName -eq 'CIPPHttpTrigger') {
+        $FunctionName = 'Invoke-{0}' -f $Request.Params.CIPPEndpoint
+        Write-Information "Function: $($Request.Params.CIPPEndpoint)"
+    } elseif ($TriggerMetadata.FunctionName -eq 'CIPPVersionedHttpTrigger') {
+        $CIPPCore = (Get-Module CIPPCore).ModuleBase
+        $CIPPRoot = (Get-Item $CIPPCore).Parent.Parent
+        $Routes = Get-Content -Path "$CIPPRoot\api-routes.json" | ConvertFrom-Json
+        $FullUri = '/{0}/{1}' -f $Request.Params.Version, $Request.Params.CIPPEndpoint
+        $Route = $Routes | Where-Object { $_.methods -contains $Request.Method -and $_.uri -eq $FullUri }
+        $FunctionName = $Route.name
+        if ($FunctionName) {
+            Write-Information "[$($Request.Method)] $FullUri ($FunctionName)"
+        }
+    }
 
     $HttpTrigger = @{
         Request         = [pscustomobject]($Request)
         TriggerMetadata = $TriggerMetadata
     }
 
-    if (Get-Command -Name $FunctionName -ErrorAction SilentlyContinue) {
+    if ($FunctionName -and (Get-Command -Name $FunctionName -ErrorAction SilentlyContinue) -or $FunctionName -eq 'Invoke-Me') {
         try {
             $Access = Test-CIPPAccess -Request $Request
             Write-Information "Access: $Access"

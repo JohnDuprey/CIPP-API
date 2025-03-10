@@ -1,0 +1,19 @@
+[
+  {
+    "uri": "/v1.0/api-test",
+    "name": "Invoke-ListApiTest",
+    "methods": [
+      "GET",
+      "POST",
+      "PATCH",
+      "PUT"
+    ]
+  },
+  {
+    "uri": "/v1.0/api-test-delete",
+    "name": "Invoke-ListApiTest",
+    "methods": [
+      "DELETE"
+    ]
+  }
+]
