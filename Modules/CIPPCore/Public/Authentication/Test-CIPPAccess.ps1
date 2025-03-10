@@ -24,8 +24,6 @@ function Test-CIPPAccess {
     $CIPPRoot = (Get-Item $CIPPCoreModuleRoot).Parent.Parent
     $BaseRoles = Get-Content -Path $CIPPRoot\Config\cipp-roles.json | ConvertFrom-Json
 
-    $AnyTenantAllowedFunctions = @('ListTenants', 'ListUserSettings', 'ListUserPhoto', 'GetCippAlerts', 'GetVersion')
-
     if ($Request.Headers.'x-ms-client-principal-idp' -eq 'aad' -and $Request.Headers.'x-ms-client-principal-name' -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
         # Direct API Access
         $ForwardedFor = $Request.Headers.'x-forwarded-for' -split ',' | Select-Object -First 1
@@ -195,7 +193,7 @@ function Test-CIPPAccess {
                 if (!$APIAllowed) {
                     throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
                 }
-                if (!$TenantAllowed -and $AnyTenantAllowedFunctions -notcontains $Request.Params.CIPPEndpoint) {
+                if (!$TenantAllowed -and $Help.Functionality -notmatch 'AnyTenant') {
                     throw 'Access to this tenant is not allowed'
                 } else {
                     return $true
