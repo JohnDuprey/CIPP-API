@@ -12,7 +12,7 @@ function New-CippExtAlert {
     foreach ($ConfigItem in $Configuration.psobject.properties.name) {
         switch ($ConfigItem) {
             'HaloPSA' {
-                If ($Configuration.HaloPSA.enabled) {
+                if ($Configuration.HaloPSA.enabled) {
                     $MappingFile = Get-CIPPAzDataTableEntity @MappingTable -Filter "PartitionKey eq 'HaloMapping'"
                     $TenantId = (Get-Tenants | Where-Object defaultDomainName -EQ $Alert.TenantId).customerId
                     Write-Host "TenantId: $TenantId"
@@ -23,8 +23,17 @@ function New-CippExtAlert {
                     New-HaloPSATicket -Title $Alert.AlertTitle -Description $Alert.AlertText -Client $mappedId
                 }
             }
+            'NinjaOne' {
+                if ($Configuration.NinjaOne.PSAEnabled) {
+                    $MappingFile = Get-CIPPAzDataTableEntity @MappingTable -Filter "PartitionKey eq 'NinjaOneMapping'"
+                    $TenantId = (Get-Tenants | Where-Object defaultDomainName -EQ $Alert.TenantId).customerId
+                    $MappedId = ($MappingFile | Where-Object { $_.RowKey -eq $TenantId }).IntegrationId
+                    if (!$mappedId) { $MappedId = 1 }
+                    New-NinjaOnePSATicket -Title $Alert.AlertTitle -Description $Alert.AlertText -Client $mappedId
+                }
+            }
             'Gradient' {
-                If ($Configuration.Gradient.enabled) {
+                if ($Configuration.Gradient.enabled) {
                     New-GradientAlert -Title $Alert.AlertTitle -Description $Alert.AlertText -Client $Alert.TenantId
                 }
             }
