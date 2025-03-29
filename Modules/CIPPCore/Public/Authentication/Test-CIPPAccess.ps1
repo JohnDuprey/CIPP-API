@@ -32,8 +32,10 @@ function Test-CIPPAccess {
     $CIPPCoreModuleRoot = Get-Module -Name CIPPCore | Select-Object -ExpandProperty ModuleBase
     $CIPPRoot = (Get-Item $CIPPCoreModuleRoot).Parent.Parent
     $BaseRoles = Get-Content -Path $CIPPRoot\Config\cipp-roles.json | ConvertFrom-Json
+    $DefaultRoles = @('superadmin', 'admin', 'editor', 'readonly', 'anonymous', 'authenticated')
 
     if ($Request.Headers.'x-ms-client-principal-idp' -eq 'aad' -and $Request.Headers.'x-ms-client-principal-name' -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
+        $Type = 'APIClient'
         # Direct API Access
         $ForwardedFor = $Request.Headers.'x-forwarded-for' -split ',' | Select-Object -First 1
         $IPRegex = '^(?<IP>(?:\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-fA-F:]+\]|[0-9a-fA-F:]+))(?::\d+)?$'
@@ -56,7 +58,20 @@ function Test-CIPPAccess {
 
             if ($IPMatched) {
                 if ($Client.Role) {
-                    $CustomRoles = @($Client.Role)
+                    $CustomRoles = $Client.Role | ForEach-Object {
+                        if ($DefaultRoles -notcontains $_) {
+                            $_
+                        }
+                    }
+                    $BaseRole = $null
+                    foreach ($Role in $BaseRoles.PSObject.Properties) {
+                        foreach ($ClientRole in $Client.Role) {
+                            if ($Role.Name -eq $ClientRole) {
+                                $BaseRole = $Role
+                                break
+                            }
+                        }
+                    }
                 } else {
                     $CustomRoles = @('cipp-api')
                 }
@@ -68,7 +83,7 @@ function Test-CIPPAccess {
             Write-Information "API Access: AppId=$($Request.Headers.'x-ms-client-principal-name'), IP=$IPAddress"
         }
     } else {
-        $DefaultRoles = @('superadmin', 'admin', 'editor', 'readonly', 'anonymous', 'authenticated')
+        $Type = 'User'
         $User = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Request.Headers.'x-ms-client-principal')) | ConvertFrom-Json
 
         # Check for roles granted via group membership
@@ -106,7 +121,6 @@ function Test-CIPPAccess {
                 }
             }
         }
-
     }
 
     # Check base role permissions before continuing to custom roles
@@ -131,7 +145,7 @@ function Test-CIPPAccess {
     }
 
     # Check custom role permissions for limitations on api calls or tenants
-    if ($null -eq $BaseRole -and ($CustomRoles | Measure-Object).Count -eq 0) {
+    if ($null -eq $BaseRole -and $Type -eq 'User' -and ($CustomRoles | Measure-Object).Count -eq 0) {
         throw 'Access to this CIPP API endpoint is not allowed, the user does not have the required permission'
     } elseif (($CustomRoles | Measure-Object).Count -gt 0) {
         if (@('admin', 'superadmin') -contains $BaseRole.Name) {
@@ -173,48 +187,8 @@ function Test-CIPPAccess {
                         }
                     }
 
-                if ($APIAllowed) {
-                    $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $Request.Query.tenantId ?? $Request.Body.tenantId ?? $env:TenantID
-                    # Check tenant level access
-                    if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
-                        $TenantAllowed = $true
-                    } elseif ($TenantFilter -eq 'AllTenants') {
-                        $TenantAllowed = $false
-                    } else {
-                        $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
-                        if ($Role.AllowedTenants -contains 'AllTenants') {
-                            $AllowedTenants = $Tenants.customerId
-                        } else {
-                            $AllowedTenants = $Role.AllowedTenants
-                        }
-                        if ($Tenant) {
-                            $TenantAllowed = $AllowedTenants -contains $Tenant -and $Role.BlockedTenants -notcontains $Tenant
-                            if (!$TenantAllowed) { continue }
-                            break
-                        } else {
-                            $TenantAllowed = $true
-                            break
-                        }
-                    }
-                }
-            }
-
-            if (!$APIAllowed) {
-                throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
-            }
-            if (!$TenantAllowed -and $Help.Functionality -notmatch 'AnyTenant') {
-                throw 'Access to this tenant is not allowed'
-            } else {
-                return $true
-            }
-        } else {
-            # No permissions found for any roles
-            if ($TenantList.IsPresent) {
-                return @('AllTenants')
-            }
-            return $true
                     if ($APIAllowed) {
-                        $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $env:TenantID
+                        $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $Request.Body.tenantFilter.value ?? $Request.Query.tenantId ?? $Request.Body.tenantId ?? $Request.Body.tenantId.value ?? $env:TenantID
                         # Check tenant level access
                         if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
                             $TenantAllowed = $true
@@ -253,9 +227,46 @@ function Test-CIPPAccess {
                     return @('AllTenants')
                 }
                 return $true
+                if ($APIAllowed) {
+                    $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $env:TenantID
+                    # Check tenant level access
+                    if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
+                        $TenantAllowed = $true
+                    } elseif ($TenantFilter -eq 'AllTenants') {
+                        $TenantAllowed = $false
+                    } else {
+                        $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
+                        if ($Role.AllowedTenants -contains 'AllTenants') {
+                            $AllowedTenants = $Tenants.customerId
+                        } else {
+                            $AllowedTenants = $Role.AllowedTenants
+                        }
+                        if ($Tenant) {
+                            $TenantAllowed = $AllowedTenants -contains $Tenant -and $Role.BlockedTenants -notcontains $Tenant
+                            if (!$TenantAllowed) { continue }
+                            break
+                        } else {
+                            $TenantAllowed = $true
+                            break
+                        }
+                    }
+                }
+            }
+
+            if (!$APIAllowed) {
+                throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
+            }
+            if (!$TenantAllowed -and $Help.Functionality -notmatch 'AnyTenant') {
+                throw 'Access to this tenant is not allowed'
+            } else {
+                return $true
             }
         }
     } else {
+        # No permissions found for any roles
+        if ($TenantList.IsPresent) {
+            return @('AllTenants')
+        }
         return $true
     }
 }
