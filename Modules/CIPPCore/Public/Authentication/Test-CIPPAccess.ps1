@@ -34,6 +34,15 @@ function Test-CIPPAccess {
     $BaseRoles = Get-Content -Path $CIPPRoot\Config\cipp-roles.json | ConvertFrom-Json
     $DefaultRoles = @('superadmin', 'admin', 'editor', 'readonly', 'anonymous', 'authenticated')
 
+    if ($APIRole -eq 'Public') {
+        return $true
+    }
+
+    # Get default roles from config
+    $CIPPCoreModuleRoot = Get-Module -Name CIPPCore | Select-Object -ExpandProperty ModuleBase
+    $CIPPRoot = (Get-Item $CIPPCoreModuleRoot).Parent.Parent
+    $BaseRoles = Get-Content -Path $CIPPRoot\Config\cipp-roles.json | ConvertFrom-Json
+
     if ($Request.Headers.'x-ms-client-principal-idp' -eq 'aad' -and $Request.Headers.'x-ms-client-principal-name' -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') {
         $Type = 'APIClient'
         # Direct API Access
@@ -233,8 +242,10 @@ function Test-CIPPAccess {
                     if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
                         $TenantAllowed = $true
                     } elseif ($TenantFilter -eq 'AllTenants') {
+                    } elseif ($TenantFilter -eq 'AllTenants') {
                         $TenantAllowed = $false
                     } else {
+                        $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
                         $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
                         if ($Role.AllowedTenants -contains 'AllTenants') {
                             $AllowedTenants = $Tenants.customerId
@@ -253,7 +264,9 @@ function Test-CIPPAccess {
                 }
             }
 
+
             if (!$APIAllowed) {
+                throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
                 throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
             }
             if (!$TenantAllowed -and $Help.Functionality -notmatch 'AnyTenant') {

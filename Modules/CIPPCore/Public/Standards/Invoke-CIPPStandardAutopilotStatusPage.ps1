@@ -14,7 +14,7 @@ function Invoke-CIPPStandardAutopilotStatusPage {
             Device Management Standards
         TAG
         DISABLEDFEATURES
-
+            {"report":true,"warn":true,"remediate":false}
         ADDEDCOMPONENT
             {"type":"number","name":"standards.AutopilotStatusPage.TimeOutInMinutes","label":"Timeout in minutes","defaultValue":60}
             {"type":"textField","name":"standards.AutopilotStatusPage.ErrorMessage","label":"Custom Error Message","required":false}
@@ -82,14 +82,12 @@ function Invoke-CIPPStandardAutopilotStatusPage {
             }
 
         }
-
         $StateIsCorrect = $ESPConfigured -and (-not $SettingsMismatch)
     } catch {
         $ErrorMessage = Get-NormalizedError -Message $_.Exception.Message
         Write-LogMessage -API 'Standards' -tenant $tenant -message "Failed to check Autopilot Enrollment Status Page: $ErrorMessage" -sev Error
         $StateIsCorrect = $false
     }
-
     if ($Settings.report -eq $true) {
         $state = $StateIsCorrect -eq $true ? $true : $StateIsCorrect
         Set-CIPPStandardsCompareField -FieldName 'standards.AutopilotStatusPage' -FieldValue $state -TenantFilter $tenant
