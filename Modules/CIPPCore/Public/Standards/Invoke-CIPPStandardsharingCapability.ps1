@@ -88,4 +88,13 @@ function Invoke-CIPPStandardsharingCapability {
         }
         Set-CIPPStandardsCompareField -FieldName 'standards.sharingCapability' -FieldValue $FieldValue -Tenant $Tenant
     }
+
+    if ($Settings.report -eq $true) {
+        if ($CurrentInfo.sharingCapability -eq $level) {
+            $FieldValue = $true
+        } else {
+            $FieldValue = $CurrentInfo | Select-Object -Property sharingCapability
+        }
+        Set-CIPPStandardsCompareField -FieldName 'standards.sharingCapability' -FieldValue $FieldValue -Tenant $Tenant
+    }
 }

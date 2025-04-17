@@ -154,46 +154,4 @@ function Invoke-CIPPStandardIntuneTemplate {
         }
         #Add-CIPPBPAField -FieldName "policy-$id" -FieldValue $Compare -StoreAs bool -Tenant $tenant
     }
-
-    If ($true -in $Settings.remediate) {
-        Write-Host 'starting template deploy'
-        foreach ($TemplateFile in $CompareList | Where-Object -Property remediate -EQ $true) {
-            Write-Host "working on template deploy: $($Template.displayname)"
-            try {
-                $TemplateFile.customGroup ? ($TemplateFile.AssignTo = $TemplateFile.customGroup) : $null
-                Set-CIPPIntunePolicy -TemplateType $TemplateFile.body.Type -Description $TemplateFile.description -DisplayName $TemplateFile.displayname -RawJSON $templateFile.rawJSON -AssignTo $TemplateFile.AssignTo -ExcludeGroup $TemplateFile.excludeGroup -tenantFilter $Tenant
-            } catch {
-                $ErrorMessage = Get-NormalizedError -Message $_.Exception.Message
-                Write-LogMessage -API 'Standards' -tenant $tenant -message "Failed to create or update Intune Template $displayname, Error: $ErrorMessage" -sev 'Error'
-            }
-        }
-
-    }
-
-    if ($Settings.alert) {
-        foreach ($Template in $CompareList) {
-            $AlertObj = $Template | Select-Object -Property displayname, description, compare, assignTo, excludeGroup, existingPolicyId
-            if ($Template.compare) {
-                Write-StandardsAlert -message "Template $($Template.displayname) does not match the expected configuration." -object $AlertObj -tenant $Tenant -standardName 'IntuneTemplate' -standardId $Settings.templateId
-                Write-LogMessage -API 'Standards' -tenant $Tenant -message "Template $($Template.displayname) does not match the expected configuration. We've generated an alert" -sev info
-            } else {
-                if ($Template.ExistingPolicyId) {
-                    Write-LogMessage -API 'Standards' -tenant $Tenant -message "Template $($Template.displayname) has the correct configuration." -sev Info
-                } else {
-                    Write-StandardsAlert -message "Template $($Template.displayname) is missing." -object $AlertObj -tenant $Tenant -standardName 'IntuneTemplate' -standardId $Settings.templateId
-                    Write-LogMessage -API 'Standards' -tenant $Tenant -message "Template $($Template.displayname) is missing." -sev info
-                }
-            }
-        }
-    }
-
-    if ($Settings.report) {
-        foreach ($Template in $CompareList) {
-            $id = $Template.templateId
-            $CompareObj = $Template.compare
-            $state = $CompareObj ? $CompareObj : $true
-            Set-CIPPStandardsCompareField -FieldName "standards.IntuneTemplate.$id" -FieldValue $state -TenantFilter $Tenant
-        }
-        Add-CIPPBPAField -FieldName "policy-$id" -FieldValue $Compare -StoreAs bool -Tenant $tenant
-    }
 }

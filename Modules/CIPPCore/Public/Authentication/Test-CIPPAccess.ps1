@@ -237,16 +237,16 @@ function Test-CIPPAccess {
                 }
                 return $true
                 if ($APIAllowed) {
-                    $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $env:TenantID
+                    $TenantFilter = $Request.Query.tenantFilter ?? $Request.Body.tenantFilter ?? $Request.Query.tenantId ?? $Request.Body.tenantId ?? $env:TenantID
                     # Check tenant level access
                     if (($Role.BlockedTenants | Measure-Object).Count -eq 0 -and $Role.AllowedTenants -contains 'AllTenants') {
                         $TenantAllowed = $true
                     } elseif ($TenantFilter -eq 'AllTenants') {
-                    } elseif ($TenantFilter -eq 'AllTenants') {
+
                         $TenantAllowed = $false
                     } else {
                         $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
-                        $Tenant = ($Tenants | Where-Object { $TenantFilter -eq $_.customerId -or $TenantFilter -eq $_.defaultDomainName }).customerId
+
                         if ($Role.AllowedTenants -contains 'AllTenants') {
                             $AllowedTenants = $Tenants.customerId
                         } else {
@@ -264,22 +264,31 @@ function Test-CIPPAccess {
                 }
             }
 
-
-            if (!$APIAllowed) {
-                throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
-                throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
-            }
             if (!$TenantAllowed -and $Help.Functionality -notmatch 'AnyTenant') {
-                throw 'Access to this tenant is not allowed'
-            } else {
-                return $true
+
+                if (!$APIAllowed) {
+                    throw "Access to this CIPP API endpoint is not allowed, you do not have the required permission: $APIRole"
+                }
+                if (!$TenantAllowed -and $Help.Functionality -notmatch 'AnyTenant') {
+                    Write-Information "Tenant not allowed: $TenantFilter"
+
+                    throw 'Access to this tenant is not allowed'
+                } else {
+                    return $true
+                }
+
             }
+        } else {
+            # No permissions found for any roles
+            if ($TenantList.IsPresent) {
+                return @('AllTenants')
+            }
+            return $true
         }
-    } else {
-        # No permissions found for any roles
-        if ($TenantList.IsPresent) {
-            return @('AllTenants')
-        }
-        return $true
     }
+
+    if ($TenantList.IsPresent) {
+        return @('AllTenants')
+    }
+    return $true
 }
